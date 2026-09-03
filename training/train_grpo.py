@@ -79,7 +79,7 @@ def load_dataset(path: str):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="../data/generated_cases.jsonl")
+    parser.add_argument("--data", default="../data/train.jsonl")
     parser.add_argument("--model", default="Qwen/Qwen2.5-0.5B-Instruct")
     parser.add_argument("--output", default="./checkpoints")
     parser.add_argument("--epochs", type=int, default=1)

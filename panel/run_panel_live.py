@@ -29,12 +29,23 @@ from metrics import Prediction, full_report, print_report  # noqa: E402
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="../data/seed_cases_labeled.jsonl")
+    parser.add_argument("--data", default="../data/eval.jsonl")
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--ids",
+        default=None,
+        help="Comma-separated case_ids to run (e.g. seed-01,seed-05,seed-08).",
+    )
     parser.add_argument("--out", default="../data/panel_baseline_results.jsonl")
     args = parser.parse_args()
 
     rows = [json.loads(line) for line in Path(args.data).open()]
+    if args.ids:
+        wanted = {x.strip() for x in args.ids.split(",") if x.strip()}
+        rows = [r for r in rows if r["case_id"] in wanted]
+        missing = wanted - {r["case_id"] for r in rows}
+        if missing:
+            raise SystemExit(f"Unknown case ids: {sorted(missing)}")
     if args.limit:
         rows = rows[: args.limit]
 
@@ -48,6 +59,7 @@ def main():
                 narrative=row["narrative"],
                 evidence_present=row["evidence_present"],
                 llm_call_fn=call_gemini,
+                contradicted=bool(row.get("contradicted", False)),
             )
         except ValueError as e:
             # The disqualification-risk safety check in personas.py raises here --
