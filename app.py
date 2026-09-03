@@ -139,7 +139,7 @@ EXAMPLES = [
     ],
 ]
 
-with gr.Blocks(title="DisputeCourt — Visa 13.1 Chargeback Adjudicator", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="DisputeCourt — Visa 13.1 Chargeback Adjudicator") as demo:
     gr.Markdown(
         """
         # DisputeCourt
@@ -181,4 +181,7 @@ with gr.Blocks(title="DisputeCourt — Visa 13.1 Chargeback Adjudicator", theme=
     gr.Examples(examples=EXAMPLES, inputs=[narrative, evidence, contradicted, use_panel])
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(theme=gr.themes.Soft())
+else:
+    # HF Spaces imports app.py and launches `demo` itself.
+    demo.queue()
