@@ -12,6 +12,15 @@ from pathlib import Path
 
 import gradio as gr
 
+try:
+    import spaces
+
+    _gpu_decorator = spaces.GPU
+except ImportError:
+    # Local dev — no HF ZeroGPU runtime.
+    def _gpu_decorator(fn):
+        return fn
+
 sys.path.insert(0, str(Path(__file__).resolve().parent / "panel"))
 sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
 
@@ -82,6 +91,7 @@ def run_full_panel(narrative, evidence_ids, contradicted):
     }
 
 
+@_gpu_decorator
 def predict(narrative, evidence_checkboxes, contradicted, use_panel):
     if not narrative.strip():
         return "Please enter a case narrative."
