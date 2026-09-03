@@ -118,6 +118,8 @@ def main():
         learning_rate=1e-5,
         logging_steps=5,
         save_steps=50,
+        fp16=True,   # T4 (Colab free GPU) does not support bf16
+        bf16=False,
         # Watch this run closely for the collapse mode flagged in
         # CLAUDE.md/PLAN.md: if reward variance within a group flatlines
         # early, the policy has likely collapsed onto one verdict regardless
