@@ -69,11 +69,31 @@ def compute_reward(completion_text: str, true_verdict: str) -> float:
     return correctness_term + calibration_term + abstention_term
 
 
-def trl_reward_fn(completions: list[str], true_verdicts: list[str], **kwargs) -> list[float]:
+def _completion_text(completion) -> str:
+    """TRL may pass a string or a chat-style list of message dicts."""
+    if isinstance(completion, str):
+        return completion
+    if isinstance(completion, list) and completion:
+        last = completion[-1]
+        if isinstance(last, dict):
+            return str(last.get("content", ""))
+        return str(last)
+    return str(completion)
+
+
+def trl_reward_fn(completions, **kwargs) -> list[float]:
     """
-    Adapter matching TRL's GRPOTrainer reward_fn signature: takes a batch of
-    completions plus the corresponding ground-truth column from the dataset,
-    returns a list of floats. Wire this directly into GRPOConfig in
-    train_grpo.py -- don't reimplement the reward math there.
+    Adapter for TRL GRPOTrainer. Current TRL calls reward funcs as
+    reward_fn(prompts=..., completions=..., completion_ids=..., **dataset_cols).
+    Dataset column is `true_verdict` (singular); do not require a positional
+    `true_verdicts` argument.
     """
-    return [compute_reward(c, v) for c, v in zip(completions, true_verdicts)]
+    true_verdicts = kwargs.get("true_verdict") or kwargs.get("true_verdicts")
+    if true_verdicts is None:
+        raise ValueError(
+            "Dataset must include a 'true_verdict' column for the GRPO reward."
+        )
+    return [
+        compute_reward(_completion_text(c), v)
+        for c, v in zip(completions, true_verdicts)
+    ]
