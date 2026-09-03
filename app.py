@@ -190,8 +190,7 @@ with gr.Blocks(title="DisputeCourt — Visa 13.1 Chargeback Adjudicator") as dem
     submit.click(predict, inputs=[narrative, evidence, contradicted, use_panel], outputs=output)
     gr.Examples(examples=EXAMPLES, inputs=[narrative, evidence, contradicted, use_panel])
 
+demo.queue()
+
 if __name__ == "__main__":
-    demo.launch(theme=gr.themes.Soft())
-else:
-    # HF Spaces imports app.py and launches `demo` itself.
-    demo.queue()
+    demo.launch()
