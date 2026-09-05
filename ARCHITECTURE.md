@@ -155,6 +155,22 @@ abstaining on a genuinely uncertain case is correct behaviour, not an error.
 `eval/compare_all.py` assembles the columns that exist and skips the ones that
 don't, so the table always reflects runs that actually happened.
 
+**Measured outcome (see README § Results for the full table and analysis).** The
+GRPO run improved training reward (−0.924 → −0.650) without improving the task:
+accuracy 39% → 40%, abstention 2% → **0%**, wrong-represents 34 → 35. What did
+improve was format compliance (2 unparseable → 0) and calibration (Brier 0.504 →
+0.407, a pure confidence drop at flat accuracy).
+
+Architecturally, the lesson sits in §4: the reward has four terms, and only two
+of them — JSON validity and calibration — are reachable by a 0.5B policy in 1,500
+samples. Verdict correctness needs the model to actually read the case file, and
+abstention credit needs it to identify ambiguity; neither had a usable gradient
+because the base policy never emitted `accept` or `abstain` at all. **GRPO cannot
+bootstrap a behaviour the base policy never exhibits**, so a supervised
+warm-start on evidence extraction has to precede RL. Compounding it, the FP
+penalty is scaled by stated confidence (§4), which made hedging a cheaper way to
+raise reward than getting cases right.
+
 ## 7. Safety architecture (defense-only)
 
 Three enforcement points, not a policy statement:
