@@ -1,147 +1,155 @@
-# 5-Minute Pitch Video — Shot List and Script
+# 5-Minute Pitch Video — Word-for-Word Script
 
-Record with OBS or Loom, 1080p, screen + mic. No slides deck needed beyond two
-title cards — screen-recording the actual repo and the actual metrics table is
-more convincing than slides, and it is the thing the brief asks to see.
+Read the quoted lines aloud while screen-recording. Narration is ~4:15 at a
+normal pace (~145 wpm), leaving ~40s for clicking through the demo and letting
+the table render. Lands around 4:50.
 
-**Rule for this recording: never show a number that isn't in `data/comparison.json`.**
-If the GRPO run didn't finish, say so on camera and show the columns you do
-have. A missing column you name is survivable; a number you can't reproduce
-when asked is not.
+**Setup before you hit record**
+- `python app.py` running in a browser tab, examples loaded
+- A terminal at the repo root, ready to run `python eval/compare_all.py`
+- `SKILL.md` and `training/reward.py` open in tabs
+- OBS or Loom at 1080p, mic tested
+
+**The one rule:** never say a number that isn't in `data/comparison.json`. If
+GRPO didn't finish, use **Branch B** at 3:00 — it's written, and it's honest.
 
 ---
 
-### 0:00 – 0:30 — The problem (webcam or voice over a title card)
+## 0:00 – 0:30 — Problem  *(webcam or title card)*
 
-> "Merchants lose money on chargebacks in two directions at once. They fight
-> disputes they were never going to win, and pay a representment fee for the
-> privilege. And they concede disputes they actually had the evidence to win.
+> "Merchants lose money on chargebacks in two opposite directions at once. They
+> fight disputes they were never going to win, paying a representment fee for the
+> privilege. And they concede disputes they had the evidence to win.
 >
 > A single win-rate number can't tell you which way you're bleeding — the two
-> errors cancel out in the average. That's the problem DisputeCourt is built
-> around."
+> errors cancel in the average. DisputeCourt measures them separately.
+>
+> Track 2, AI Risk Manager, on one Visa reason code: 13.1, merchandise or
+> services not received."
 
 ---
 
-### 0:30 – 1:20 — What it does (screen: the Gradio app)
+## 0:30 – 1:20 — Demo  *(screen: the Gradio app — run all three examples)*
 
-Run the app. Walk through **three** cases from the Examples row — deliberately
-one of each, and say out loud that you're showing all three kinds:
-
-1. **Represent** — tracking + AVS match. Show the verdict, the confidence, and
-   the rebuttal draft.
-2. **Accept** — no delivery evidence at all. Point out the rebuttal field is
-   *empty*, and that this is enforced, not stylistic.
-3. **Abstain** — delivery confirmed but the only identity link is an illegible
-   signature.
-
-> "Three outputs: a verdict — represent, accept the loss, or escalate to a human
-> — a calibrated confidence, and a rebuttal draft that only ever restates
-> evidence the merchant already has.
+> "Three outputs: a verdict, a calibrated confidence, and a rebuttal draft.
 >
-> Note the third case. Delivery is confirmed, but nothing links it to this
-> cardholder. The system doesn't guess. It escalates. Roughly a quarter of the
-> dataset is built to land there on purpose."
+> Tracking confirms delivery, AVS matches billing — represent, with a rebuttal
+> that restates only evidence the merchant actually holds.
+>
+> No delivery record at all — accept the loss. Notice the rebuttal field is
+> empty. That's enforced in code.
+>
+> And the one I care about: delivery confirmed, but the only identity link is an
+> illegible signature. Nothing ties that parcel to this cardholder. It doesn't
+> guess — it escalates. A quarter of my dataset lands there by design."
 
 ---
 
-### 1:20 – 2:10 — Why the ground truth is real (screen: `SKILL.md`, then `scripts/labeler.py`)
+## 1:20 – 2:05 — Ground truth  *(screen: `SKILL.md`, then `scripts/labeler.py`)*
 
-> "Here's what makes the numbers mean something. Every label in this dataset
-> comes from a rules matrix built from Visa's published requirements for reason
-> code 13.1 — merchandise or services not received.
+> "Here's what makes the numbers mean anything.
 >
-> Represent if there's proof of delivery *and* something linking that delivery
-> to this cardholder, and nothing contradicts it. Accept if there's no proof of
-> delivery at all, or the evidence undermines the merchant. Anything that
-> doesn't resolve cleanly, abstain.
+> Every label comes from a rules matrix built from Visa's published evidence
+> requirements for 13.1. Proof of delivery, plus something linking it to this
+> cardholder, and nothing contradicting it — represent. No proof of delivery, or
+> evidence that undermines the merchant — accept. Anything that doesn't resolve
+> cleanly — abstain.
 >
-> That's ninety lines of Python, and it is the only thing that assigns a label.
-> I never ask a model 'would this win?' — because then I'd be training a model
-> to imitate another model's guess and calling the result accuracy."
+> Ninety lines of Python, and it's the only thing here that assigns a label. I
+> never ask a model 'would this win?' — that's training a model to imitate
+> another model's guess and reporting the agreement as accuracy."
 
 ---
 
-### 2:10 – 3:00 — The RL (screen: `training/reward.py`, then the training curve)
+## 2:05 – 2:50 — Reward and GRPO  *(screen: `training/reward.py`, then `grpo_minimal.py`)*
 
-> "The baseline is a three-persona panel — one advocate arguing the evidence
-> gaps, one arguing the evidence present, and a referee that applies the matrix.
-> Then I fine-tune a half-billion-parameter Qwen with GRPO to do the same job in
-> a single forward pass.
+> "The policy is a half-billion-parameter Qwen fine-tuned with GRPO.
 >
-> The reward has three terms. Correctness against the matrix. A Brier-style
-> calibration term, so being confident and wrong hurts more than being uncertain
-> and wrong. And abstention credit, so escalating a genuinely ambiguous case
-> pays better than guessing it.
+> Three reward terms: correctness against the matrix; a Brier-style calibration
+> term, so confident-and-wrong hurts more than uncertain-and-wrong; and abstention
+> credit, so escalating an ambiguous case pays better than guessing.
 >
-> Plus one thing the track brief asked for by name: false-positive cost. Wrongly
-> representing and wrongly accepting are not equally bad, so they carry
-> different penalties, scaled by how confidently the model made the mistake."
-
-Show the training curve (`data/training_curve.png`).
+> Plus what the brief names explicitly — false-positive cost. Wrongly representing
+> and wrongly accepting aren't equally bad, so they carry different penalties,
+> scaled by how confidently the model erred.
+>
+> And this is GRPO written directly, not a framework call: sample a group, score
+> it, take the advantage within the group — that group-relative baseline is the
+> whole idea, it's what removes the value network — then backprop."
 
 ---
 
-### 3:00 – 4:00 — The numbers (screen: `python eval/compare_all.py`)
+## 2:50 – 4:00 — The numbers  *(run `python eval/compare_all.py` live)*
 
-Run it live. Let the table render on camera.
-
-> "Four columns, same hundred held-out cases, same parser.
+> "Same hundred held-out cases, same prompt, same parser for every column.
 >
-> Accuracy. Abstention rate. Brier score — that's calibration, lower is better.
-> And the two error directions costed separately, because that's the number that
-> tells a merchant which way they're losing money."
-
-Then — the part that earns trust:
-
-> "The first column is a keyword matcher. No AI at all. And I want to be
-> straight about what it means: it scores high, and it scores high because I
-> wrote it after I wrote the data generator, so it's matching my own templates.
+> Base model, before any RL: thirty-nine percent. That number is a trap, and the
+> confusion matrix shows why — it answers 'represent' to ninety-eight cases out of
+> a hundred. It never once says 'accept the loss.' Thirty-nine percent is just the
+> base rate of represent in my split. A constant predictor that learned nothing,
+> and plain accuracy makes it look forty percent competent.
 >
-> Any finite template generator is invertible by whoever read the templates.
-> That's a real limitation of synthetic data, it's in the README, and I kept the
-> column in rather than delete the number that complicates my story."
+> That's why abstention rate and both error directions sit next to accuracy here.
+> Thirty-four wrong-represents, zero wrong-accepts — it tells merchants to fight
+> everything. The expensive direction, and the unsafe one."
+
+### → Branch A — GRPO finished
+
+> "After GRPO: [accuracy]. But the number I care about is wrong-represents
+> dropping from thirty-four to [N], and abstention moving from two percent toward
+> the true twenty-five. The reward's cost asymmetry did that."
+
+### → Branch B — GRPO didn't finish
+
+> "The GRPO run didn't finish in my window — three attempts lost to Colab
+> environment failures, one to a real bug of mine, a full-vocabulary softmax that
+> OOM'd a T4. The loop runs and is verified end to end on CPU. What I don't have
+> is a tuned column, and I'd rather show an empty cell than a number I can't
+> reproduce."
+
+### Either branch, then:
+
+> "The first column is a keyword matcher — no AI at all — and I want to be
+> straight about it. Ninety-five percent, and it scores that high because I wrote
+> it after I wrote the data generator, so it matches my own templates. Any finite
+> template generator is invertible by whoever read the templates. That's a real
+> limitation of synthetic data. It's in the README, and I kept the column rather
+> than delete the number that complicates my story."
 
 ---
 
-### 4:00 – 4:40 — What broke (screen: the diff or `SUBMISSION.md`)
+## 4:00 – 4:35 — What broke
 
-Pick **two**, don't rush all five:
-
-> "Two things that broke. First, my prompt was handing the model
-> `evidence_present` — the exact structured field the labeler uses to make the
-> ground truth. The model wasn't reading anything, it was re-running a lookup
-> it had been given the inputs for. Every accuracy number before that fix was
-> measuring nothing.
+> "Two worth telling you about.
 >
-> Second, GRPO wouldn't run on free Colab — three attempts died in TRL and
-> torchao version conflicts. So I removed the framework and implemented GRPO
-> directly: sample a group of completions, score them, take the advantage
-> *within* the group — that group-relative baseline is the whole idea, it's what
-> removes the need for a value network — and backprop. Sixty lines. The notebook
-> now installs one package and runs start to finish on a free T4."
+> My prompt was handing the model the structured evidence field — the exact input
+> my labeler uses to build the ground truth. It wasn't reading a case file, it was
+> re-running a lookup it had the answers to. Every accuracy number before I caught
+> that was measuring nothing.
+>
+> And my reward sanity test sampled once, over forty cases, unseeded. One run told
+> me flat hedging beat genuine calibration — which would mean the policy collapses
+> to always-uncertain. Re-run over the full split, twelve seeded trials,
+> calibration wins properly. The reward was fine. The test wasn't."
 
 ---
 
-### 4:40 – 5:00 — Safety and close
+## 4:35 – 4:50 — Safety and close
 
-> "One design rule throughout: low-confidence or evidence-thin cases route to
-> accept the loss. Never to a fabricated or coached rebuttal. The rebuttal
-> drafter is only reachable on a represent verdict, and it can only restate
-> evidence the case already contains — there's a hard check that raises if a
-> rebuttal ever appears on any other verdict.
+> "One rule throughout: low-confidence or evidence-thin cases route to accept the
+> loss — never to a fabricated or coached rebuttal. The drafter is only reachable
+> on a represent verdict, it can only restate evidence the case contains, and a
+> hard check raises if a rebuttal appears anywhere else.
 >
 > This helps a merchant truthfully assemble evidence they already have. It does
-> not help them win a dispute they should lose. Repo's linked. Thanks."
+> not help them win a dispute they should lose. Repo's linked — thanks."
 
 ---
 
-## Recording checklist
+## Before you upload
 
-- [ ] `python app.py` works and all three examples render before you hit record
-- [ ] `python eval/compare_all.py` prints a full table (no "skipping" lines you
-      didn't intend)
-- [ ] `data/training_curve.png` exists, or you've cut the curve beat
-- [ ] Under 5:00 — the limit is a filter, don't fail it
-- [ ] Uploaded **unlisted, not private**, and the link opens in a logged-out
-      browser window. A private link is a zero.
+- [ ] Under 5:00
+- [ ] Every number spoken matches `data/comparison.json`
+- [ ] Uploaded **unlisted**, not private — open the link in a logged-out window
+      and confirm it plays. A private link scores zero.
+- [ ] Link pasted into `SUBMISSION.md`
