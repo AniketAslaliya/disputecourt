@@ -1,156 +1,168 @@
-# 5-Minute Pitch Video — Space-Only Script
+# 5-Minute Pitch Video — Simple Spoken Script
 
-Everything happens on one URL: **https://huggingface.co/spaces/AniketAsla/disputecourt**
+One screen the whole time: **https://huggingface.co/spaces/AniketAsla/disputecourt**
 
-No terminal, no editor, no repo. Screen-record that page for the whole video.
-~690 spoken words ≈ **4:15–4:50** including click pauses.
+Short sentences. Say them like you're explaining to a friend. Pause at **[pause]**.
+About **4:15**.
 
-**Before you record**
-- Open the Space, wait for it to finish building, and click one example once so
-  the model is warm and the page is scrolled to the top
-- Browser zoom **125%**
-- Collapse the "Results & method" accordion — you'll open it on camera at 2:45
-- Have `data/comparison.json` numbers nowhere else; every figure you say is
-  already on screen inside that accordion
-
-**The one rule:** in **Rules-matrix mode the verdict comes from the checkboxes,
-not the narrative text.** Never say "it reads the case and decides" in that mode
-— that's the RL policy's job, and the mismatch is exactly what a technical judge
-catches.
+**Before recording:** open the Space, click one example so it's warm, zoom 125%,
+and keep "Results & method" closed at the bottom.
 
 ---
 
-## 0:00 – 0:25 — Problem  *(Space landing page, top)*
+## 0:00 – 0:30 · The story
 
-> "Merchants lose money on chargebacks in two opposite directions at once. They
-> fight disputes they were never going to win, paying a representment fee for the
-> privilege. And they concede disputes they had the evidence to win.
+> "Imagine you run an online store.
 >
-> A single win-rate number can't tell you which way you're bleeding — the two
-> errors cancel in the average. DisputeCourt measures them separately. Track 2,
-> on one Visa reason code: 13.1, merchandise not received."
+> Someone buys headphones from you. Two weeks later they call their bank and say —
+> I never got this. The bank pulls the money out of your account. That's a
+> chargeback.
+>
+> Now you choose. Fight it? Or accept the loss and move on?
+>
+> **[pause]**
+>
+> Fight and lose, you pay a fee on top of losing the money. Accept when you could
+> have won, you gave away money that was yours.
+>
+> Most merchants track one number — how many disputes they win. That hides which
+> mistake is costing them. So I built something that tracks both."
 
 ---
 
-## 0:25 – 1:15 — The three verdicts  *(scroll to Examples, click rows 1, 2, 3)*
+## 0:30 – 1:15 · Three answers
 
-Click **Example 1** → Adjudicate.
+*(Click Example 1 → Adjudicate)*
 
-> "Three outputs: a verdict, a calibrated confidence, and a rebuttal draft. Here
-> tracking confirms delivery and the address matches billing — represent, with a
-> rebuttal that restates only evidence the merchant actually holds."
+> "You give it a dispute. It gives one of three answers.
+>
+> First case. Courier confirmed delivery, and the address matches the card's
+> billing address. So — fight it. And it drafts your reply using only the proof
+> you actually have."
 
-Click **Example 2** → Adjudicate. *Cursor on the output where no rebuttal appears.*
+*(Click Example 2 → Adjudicate. Point at the output.)*
 
-> "No delivery record at all — accept the loss. And notice there's no rebuttal.
-> That's enforced in code, not a style choice: the drafter is unreachable on any
-> verdict except represent."
+> "Second case. No tracking, no delivery record, nothing. Answer — accept the loss.
+>
+> And look. There's no draft reply. That's deliberate. No proof, no argument. I
+> blocked it in the code."
 
-Click **Example 3** → Adjudicate.
+*(Click Example 3 → Adjudicate)*
 
-> "And the one I care about. Delivery is confirmed, but the only identity link is
-> an illegible signature — nothing ties that parcel to this cardholder. It
-> doesn't guess. It escalates to a human. A quarter of my dataset is built to
-> land exactly there."
+> "Third case, my favourite. The package was delivered and signed for. But the
+> signature is unreadable, and nothing connects that delivery to this customer.
+>
+> So it says — I don't know. Send this to a human.
+>
+> **[pause]**
+>
+> That's the whole point. A system that always has an answer is guessing on the
+> hard ones and hiding it."
 
 ---
 
-## 1:15 – 1:50 — Ground truth  *(cursor over the E1–E7 checkboxes)*
+## 1:15 – 1:50 · How it decides
 
-> "These seven items are the entire evidence vocabulary — delivery proof, access
-> logs, address match, signature, device continuity, employment proof, support
-> logs.
+*(Cursor over the E1–E7 checkboxes)*
+
+> "These seven boxes are every kind of proof a merchant can have. Delivery
+> confirmation. Address match. Signature. Whether they've bought from you before.
 >
-> And here's what makes the numbers mean anything. I tell the system which of
-> these the merchant actually holds, and a rules matrix decides — built from
-> Visa's published requirements. Delivery proven, plus something linking it to
-> this cardholder, nothing contradicting it: represent. No delivery proof: accept.
-> Anything unresolved: abstain.
+> I tick what the merchant has, and a fixed rulebook decides — taken straight from
+> Visa's published rules. Did something get delivered? Is it linked to this
+> customer? Both yes, fight it. Nothing delivered, accept it. Anything in between,
+> ask a human.
 >
-> Ninety lines of Python, and it's the only thing that assigns a label. I never
-> ask a model 'would this win?' — that's training a model to imitate another
-> model's guess and calling the agreement accuracy."
+> **[pause]**
+>
+> And this part matters. That rulebook is the only thing deciding the right answer.
+> I never asked ChatGPT 'would this dispute win?' Then I'd just be checking whether
+> my AI agrees with another AI. That's not a real score."
 
 ---
 
-## 1:50 – 2:20 — The three modes  *(cursor over the mode radio)*
+## 1:50 – 2:30 · The AI — and it fails
 
-> "Three ways to adjudicate. The rules matrix you just saw. A Court Panel — three
-> personas, one arguing the evidence gaps, one arguing what's satisfied, and a
-> referee that applies the matrix.
+*(Switch mode to RL policy. Click Example 2 again. Adjudicate.)*
+
+> "Now the AI. I trained a small model with reinforcement learning. It only gets
+> the story in plain English — it never sees those checkboxes. It has to work out
+> the proof by reading.
 >
-> And the RL policy: a half-billion-parameter Qwen trained with GRPO that gets the
-> case as **prose only**. It never sees these checkboxes — it has to recover the
-> evidence by reading. That's the real research question, and it's where my honest
-> result is."
+> Let me run it on that second case. No tracking, no delivery, no proof at all.
+>
+> **[pause while it runs]**
+>
+> It says fight it.
+>
+> That's wrong. That's telling a merchant to spend money fighting a case with
+> nothing behind it. I'm showing you on purpose — now let me show you how badly it
+> did, and why."
 
 ---
 
-## 2:20 – 2:45 — Show the model failing  *(select RL policy, re-run Example 2)*
+## 2:30 – 3:40 · The honest numbers
 
-Click **Example 2** again, switch mode to **RL policy**, Adjudicate. Wait for it.
+*(Open "Results & method")*
 
-> "Same case — no delivery evidence whatsoever. The rules matrix said accept the
-> loss. Watch what the trained policy says.
+> "Same hundred cases for every column.
 >
-> Represent. It tells the merchant to fight a dispute with nothing behind it.
-> I'm showing you that deliberately, because I'm about to quantify it."
+> Look at the model before training. Thirty-nine percent. Sounds like it half
+> works. It doesn't. It said 'fight it' to ninety-eight cases out of a hundred. It
+> never once said 'accept the loss.' It wasn't thinking — about forty percent of my
+> cases happen to be fight cases, so it scored forty percent by saying the same
+> thing every single time.
+>
+> **[pause]**
+>
+> Then I trained it. Honest result — it barely moved. Thirty-nine to forty percent.
+> That's one case. And how often it says 'I don't know' dropped to zero. Worse than
+> before.
+>
+> Two things did improve. It stopped producing broken output, and it got less
+> overconfident.
+>
+> So it's like a student who learned neat handwriting, and learned to say 'I think
+> maybe' instead of shouting a wrong answer. But never learned the subject.
+>
+> **[pause]**
+>
+> Why? The model I started with never once said 'accept the loss.' Not a single
+> time. And this kind of training can only reward things the model already does
+> sometimes. It can't reward an answer it has never given. There was nothing to
+> build on.
+>
+> The fix is to teach it the basics normally first, then train it this way. I ran
+> out of time. I'd rather tell you that than show a number I can't defend."
 
 ---
 
-## 2:45 – 4:00 — The numbers  *(open "Results & method")*
+## 3:40 – 4:15 · Close
 
-> "Same hundred held-out cases for every column.
+> "One last thing on this table. That first column isn't AI at all — just keyword
+> matching. Ninety-five percent. I'm keeping it because it's embarrassing and it's
+> true. I wrote it after I wrote my data generator, so it already knows my
+> patterns. Real merchant cases wouldn't look like that.
 >
-> The base model, before RL: thirty-nine percent — and that's a trap. It answers
-> represent to ninety-eight cases out of a hundred, and never once says accept.
-> Thirty-nine percent is just the prevalence of represent in my split. A constant
-> predictor that learned nothing, and plain accuracy makes it look forty percent
-> competent. That's why abstention rate and both error directions sit right next
-> to accuracy.
+> **[pause]**
 >
-> Now the RL column, and this is a negative result. Training reward improved,
-> minus point nine to minus point six-five. But accuracy went thirty-nine to
-> forty — one case, noise. Abstention went two percent to zero, which is worse.
+> And the rule I care about most. No proof means accept the loss. This tool will
+> never write you a clever argument out of nothing.
 >
-> What did improve: unparseable outputs, two to zero. And calibration — Brier from
-> point five-oh to point four-one, which at flat accuracy is a pure confidence
-> drop. So it learned to emit valid JSON and hedge. It did not learn to
-> adjudicate.
+> It helps an honest merchant use the proof they already have. It doesn't help
+> anyone win a case they should lose.
 >
-> Of my four reward terms, a half-billion model on fifteen hundred samples can
-> learn two — format and calibration — but not verdict correctness or when to
-> abstain. It took the points that were available. And the base policy never
-> emitted accept or abstain at all, so there was nothing for the correctness
-> gradient to reinforce. GRPO can't bootstrap a behaviour the base policy never
-> shows — the fix is a supervised warm-start on evidence extraction, first."
+> It's all on GitHub. Thank you."
 
 ---
 
-## 4:00 – 4:45 — Keyword control, safety, close  *(scroll within the accordion)*
-
-> "One more column: a keyword matcher, no AI, ninety-five percent. And it scores
-> that high because I wrote it *after* the data generator, so it matches my own
-> templates. Any finite template generator is invertible by whoever read it.
-> That's a real limit of synthetic data — I kept the column rather than delete the
-> number that complicates my story.
->
-> And one rule throughout: evidence-thin cases route to accept the loss, never to
-> a fabricated rebuttal — which is why example two came back empty.
->
-> This helps a merchant truthfully assemble evidence they already have. It doesn't
-> help them win a dispute they should lose. Code and full analysis are linked at
-> the bottom. Thanks."
-
----
-
-## Before you upload
+## Checklist
 
 - [ ] Under 5:00
-- [ ] Every number spoken is visible on screen in the accordion
-- [ ] Uploaded **unlisted**, not private — open the link logged-out and confirm
-- [ ] Link pasted into `SUBMISSION.md`
+- [ ] Upload **unlisted** (not private) — open it in a private window and check
+      it plays
+- [ ] Paste the link into `SUBMISSION.md`
 
-**If you're running long:** cut the keyword-control paragraph at 4:00 (it's in the
-accordion anyway) and the mode walkthrough at 1:50. Never cut the safety close or
-the 2:20 failure demo — those are the two that carry the most credibility.
+**Running long?** Cut the keyword-matching paragraph at 3:40. Never cut the
+"I don't know" case at 0:30, or the model failing at 1:50 — those two are what
+make people trust everything else.
