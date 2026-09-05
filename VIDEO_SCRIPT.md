@@ -14,6 +14,74 @@ render. Lands around **4:45**.
 
 ---
 
+## Screen direction — what is visible when
+
+| Time | On screen | What you do |
+|---|---|---|
+| 0:00–0:25 | Title card *or* your face | Nothing. Just talk. |
+| 0:25–1:10 | Gradio app, full screen | Click Examples 1 → 2 → 3, Adjudicate each |
+| 1:10–1:35 | `SKILL.md`, scrolled to the labeling-logic block | Slow scroll over the 3 rules |
+| 1:35–1:50 | `scripts/labeler.py`, the `label()` function | Sit still on it |
+| 1:50–2:20 | `training/reward.py`, top constants | Highlight the two FP penalty lines |
+| 2:20–3:10 | Terminal running `eval/compare_all.py` | Run it, let the table render, cursor on the base column |
+| 3:10–4:05 | `data/training_curve.png` full screen | Nothing — talk over it |
+| 4:05–4:45 | Back to the terminal table | Cursor on the keyword column, then stop |
+
+**Before you record:** browser zoom to **125%**, terminal font to **16pt**. Judges
+watch these in a small window; default sizes are unreadable and it silently costs
+you.
+
+---
+
+## The demo — exact click sequence, no typing
+
+Leave the mode radio on **"Rules matrix (deterministic, no AI)"**. Click each
+example, hit **Adjudicate**, and let the output render. Verified outputs:
+
+| Click | Verdict shown | Confidence | The thing to point at |
+|---|---|---|---|
+| **Example 1** — tracking + AVS Y-match | `REPRESENT` | 0.70 | The **rebuttal draft is populated** |
+| **Example 2** — no shipping record at all | `ACCEPT` | 0.75 | The **rebuttal field is empty** ← linger here |
+| **Example 3** — delivered, signature illegible | `ABSTAIN` | 0.50 | It **refuses to decide** |
+| *Example 4 (optional)* — delivered to wrong city | `ACCEPT` | 0.85 | `contradicted` overrides delivery proof |
+
+**Why rules mode and not the RL policy:** it's instant (the RL policy takes ~20s
+per case on CPU), and the output labels itself `Mode: rules-matrix
+(deterministic)` on screen, so nobody can mistake it for the model. Critically,
+the RL policy answers `represent` to *everything* — that's the result you report
+at 3:10, not something you want to discover live on camera.
+
+**Optional, and genuinely strong if you have the seconds:** after Example 2
+returns `ACCEPT`, switch the mode radio to **RL policy** and re-run that same
+case. It will say `REPRESENT`. Then say:
+
+> "That's the trained policy on a case with no delivery evidence at all. It says
+> fight it. That's the failure I'm about to quantify — I'm not going to show you
+> the deterministic path and let you assume the model does the same thing."
+
+That single move does more for your credibility than any number in the table. Cut
+it only if you're over time.
+
+---
+
+## Delivery — how to not sound like you're reading
+
+- **Lead with the stake, not the architecture.** The first sentence is about money
+  being lost. Nobody cares what you built until they care what it's for.
+- **Pause for a beat before "this is a negative result."** A held silence there
+  reads as confidence. Rushing it reads as embarrassment.
+- **Point the cursor at what you're describing.** When you say "the rebuttal field
+  is empty," the cursor should be on the empty field. Saying it while the mouse
+  sits still is a wasted second.
+- **Vary pace deliberately.** Fast through setup, slow through the base-model trap
+  and the reward diagnosis — those two are the parts worth understanding.
+- **Read it aloud once before recording.** You'll catch every phrase that isn't
+  yours and can swap it for one that is. Don't preserve my wording over your own.
+- **One take is fine.** A small stumble costs nothing; a video that never gets
+  uploaded costs everything.
+
+---
+
 ## 0:00 – 0:25 — Problem
 
 > "Merchants lose money on chargebacks in two opposite directions at once. They
