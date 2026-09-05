@@ -57,35 +57,32 @@ Click **Example 3** → Adjudicate.
 
 ## 1:15 – 1:50 — Ground truth  *(cursor over the E1–E7 checkboxes)*
 
-> "These seven items are the whole evidence vocabulary — proof of delivery,
-> digital access logs, address match, signature, device continuity, employment
-> proof, support logs.
+> "These seven items are the entire evidence vocabulary — delivery proof, access
+> logs, address match, signature, device continuity, employment proof, support
+> logs.
 >
 > And here's what makes the numbers mean anything. I tell the system which of
 > these the merchant actually holds, and a rules matrix decides — built from
 > Visa's published requirements. Delivery proven, plus something linking it to
-> this cardholder, nothing contradicting it: represent. No proof of delivery:
-> accept. Anything unresolved: abstain.
+> this cardholder, nothing contradicting it: represent. No delivery proof: accept.
+> Anything unresolved: abstain.
 >
-> That matrix is ninety lines of Python and it's the only thing that assigns a
-> label. I never ask a model 'would this win?' — that's training a model to
-> imitate another model's guess and reporting the agreement as accuracy."
+> Ninety lines of Python, and it's the only thing that assigns a label. I never
+> ask a model 'would this win?' — that's training a model to imitate another
+> model's guess and calling the agreement accuracy."
 
 ---
 
 ## 1:50 – 2:20 — The three modes  *(cursor over the mode radio)*
 
-> "Three ways to adjudicate. The rules matrix, deterministic, what you just saw —
-> that's the ground truth.
->
-> The Court Panel: three personas — a cardholder-side advocate finding evidence
-> gaps, a merchant-side advocate arguing what's satisfied, and a network-rules
-> referee that applies the matrix and declares the verdict.
+> "Three ways to adjudicate. The rules matrix you just saw. A Court Panel — three
+> personas, one arguing the evidence gaps, one arguing what's satisfied, and a
+> referee that applies the matrix.
 >
 > And the RL policy: a half-billion-parameter Qwen trained with GRPO that gets the
 > case as **prose only**. It never sees these checkboxes — it has to recover the
-> evidence set by reading. That's the real research question here, and it's where
-> my honest result is."
+> evidence by reading. That's the real research question, and it's where my honest
+> result is."
 
 ---
 
@@ -122,12 +119,11 @@ Click **Example 2** again, switch mode to **RL policy**, Adjudicate. Wait for it
 > adjudicate.
 >
 > Of my four reward terms, a half-billion model on fifteen hundred samples can
-> learn two — format and calibration — but not verdict correctness, which needs
-> reading, or abstention credit, which needs knowing which cases are ambiguous. It
-> took the points that were available. And the base policy never emitted accept or
-> abstain at all, so there was nothing for the correctness gradient to reinforce.
-> GRPO can't bootstrap a behaviour the base policy never shows. The fix is a
-> supervised warm-start on evidence extraction, first."
+> learn two — format and calibration — but not verdict correctness or when to
+> abstain. It took the points that were available. And the base policy never
+> emitted accept or abstain at all, so there was nothing for the correctness
+> gradient to reinforce. GRPO can't bootstrap a behaviour the base policy never
+> shows — the fix is a supervised warm-start on evidence extraction, first."
 
 ---
 
