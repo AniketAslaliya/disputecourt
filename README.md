@@ -247,9 +247,10 @@ panel/          3-persona Court Panel (prompted baseline)
 training/       reward, self-contained GRPO, Colab notebook
 eval/           metrics, keyword control, model eval, comparison table
 app.py          Gradio demo
-SKILL.md        evidence rules matrix + persona definitions
-SUBMISSION.md   application form answers
-VIDEO_SCRIPT.md pitch video shot list
+SKILL.md         evidence rules matrix + persona definitions
+ARCHITECTURE.md  system design, data flow, training loop, safety gates
+SUBMISSION.md    application form answers
+VIDEO_SCRIPT.md  pitch video script
 ```
 
 ## Running
