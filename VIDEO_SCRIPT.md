@@ -34,10 +34,10 @@ GRPO didn't finish, use **Branch B** at 3:00 — it's written, and it's honest.
 > "Three outputs: a verdict, a calibrated confidence, and a rebuttal draft.
 >
 > Tracking confirms delivery, AVS matches billing — represent, with a rebuttal
-> that restates only evidence the merchant actually holds.
+> restating only evidence the merchant actually holds.
 >
-> No delivery record at all — accept the loss. Notice the rebuttal field is
-> empty. That's enforced in code.
+> No delivery record — accept the loss, and the rebuttal field is empty. That's
+> enforced in code.
 >
 > And the one I care about: delivery confirmed, but the only identity link is an
 > illegible signature. Nothing ties that parcel to this cardholder. It doesn't
@@ -51,9 +51,8 @@ GRPO didn't finish, use **Branch B** at 3:00 — it's written, and it's honest.
 >
 > Every label comes from a rules matrix built from Visa's published evidence
 > requirements for 13.1. Proof of delivery, plus something linking it to this
-> cardholder, and nothing contradicting it — represent. No proof of delivery, or
-> evidence that undermines the merchant — accept. Anything that doesn't resolve
-> cleanly — abstain.
+> cardholder, nothing contradicting it — represent. No proof of delivery, or
+> evidence that undermines the merchant — accept. Anything unresolved — abstain.
 >
 > Ninety lines of Python, and it's the only thing here that assigns a label. I
 > never ask a model 'would this win?' — that's training a model to imitate
@@ -70,12 +69,10 @@ GRPO didn't finish, use **Branch B** at 3:00 — it's written, and it's honest.
 > credit, so escalating an ambiguous case pays better than guessing.
 >
 > Plus what the brief names explicitly — false-positive cost. Wrongly representing
-> and wrongly accepting aren't equally bad, so they carry different penalties,
-> scaled by how confidently the model erred.
+> and wrongly accepting aren't equally bad, so they carry different penalties.
 >
-> And this is GRPO written directly, not a framework call: sample a group, score
-> it, take the advantage within the group — that group-relative baseline is the
-> whole idea, it's what removes the value network — then backprop."
+> And this is GRPO written directly, not a framework call — the advantage is
+> computed within the group, which is what removes the value network."
 
 ---
 
@@ -120,17 +117,17 @@ GRPO didn't finish, use **Branch B** at 3:00 — it's written, and it's honest.
 
 ## 4:00 – 4:35 — What broke
 
-> "Two worth telling you about.
+> "The one that mattered most: my prompt was handing the model the structured
+> evidence field — the exact input my labeler uses to build the ground truth. It
+> wasn't reading a case file, it was re-running a lookup it already had the
+> answers to. Every accuracy number before I caught that was measuring nothing.
 >
-> My prompt was handing the model the structured evidence field — the exact input
-> my labeler uses to build the ground truth. It wasn't reading a case file, it was
-> re-running a lookup it had the answers to. Every accuracy number before I caught
-> that was measuring nothing.
->
-> And my reward sanity test sampled once, over forty cases, unseeded. One run told
-> me flat hedging beat genuine calibration — which would mean the policy collapses
-> to always-uncertain. Re-run over the full split, twelve seeded trials,
-> calibration wins properly. The reward was fine. The test wasn't."
+> That's why the model now only ever sees prose, and has to recover the evidence
+> set itself."
+
+*(Two more are written up in the form answer and the README — the unseeded
+reward sanity test, and the full-vocab softmax that OOM'd the T4. Only mention
+them if you're comfortably under time.)*
 
 ---
 
