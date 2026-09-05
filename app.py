@@ -46,6 +46,62 @@ EVIDENCE_LABELS = {
 
 EVIDENCE_IDS = list(EVIDENCE_LABELS.keys())
 
+RESULTS_MD = """
+### Ground truth is deterministic, not model opinion
+
+Every label comes from a rules matrix built from Visa's published 13.1
+compelling-evidence requirements — **not** from asking an LLM "would this win?".
+
+```
+REPRESENT if: (E1 or E2) AND (E3 or E5 or E6) AND NOT contradicted
+ACCEPT    if: (E1 absent AND E2 absent) OR contradicted
+ABSTAIN   if: neither resolves cleanly
+```
+
+### Measured results — 100 held-out cases, same prompt and parser
+
+| Metric | Keyword control (no AI) | Base Qwen2.5-0.5B | GRPO-tuned |
+|---|---|---|---|
+| Accuracy | 95.0% | 39.0% | 40.0% |
+| Abstention rate | 24.0% | 2.0% | 0.0% |
+| Brier score (calibration) | 0.087 | 0.504 | **0.407** |
+| Wrong-represent | 0 | 34 | 35 |
+| Wrong-accept | 4 | 0 | 0 |
+| Unparseable output | — | 2 | **0** |
+
+**The base model is a constant predictor.** It answers `represent` to 98 of 100
+cases and never once says "accept the loss" — its 39% is just the prevalence of
+`represent` in the split. That is why abstention rate and both error directions
+sit next to accuracy: a single accuracy figure makes a model that learned
+nothing look 40% competent.
+
+**The RL result is negative, and reported as such.** GRPO raised training reward
+(−0.924 → −0.650) without teaching the task — accuracy moved one case, and
+abstention fell to zero. What improved was format compliance (2 unparseable → 0)
+and calibration (Brier 0.504 → 0.407), which at flat accuracy is a pure
+confidence drop. Of four reward terms, a 0.5B policy on 1,500 samples can learn
+JSON validity and calibration, but not verdict correctness (needs real reading)
+or abstention credit (needs knowing *which* cases are ambiguous). It took the
+available points. The base policy never emitted `accept` or `abstain` at all,
+and **GRPO cannot bootstrap a behaviour the base policy never exhibits** — a
+supervised warm-start on evidence extraction has to come first.
+
+**The keyword control is an oracle, not a floor.** It scores 95% because it was
+written *after* the data generator and matches its own templates. Any finite
+template generator is invertible by whoever read it. It is reported rather than
+deleted.
+
+### Safety — defense-only
+
+Low-confidence or evidence-thin cases route to **accept the loss**, never to a
+fabricated or coached rebuttal. The rebuttal drafter is reachable only on a
+`represent` verdict, may only restate evidence the case contains, and a hard
+check raises if a rebuttal appears on any other verdict.
+
+Full analysis, dataset and code:
+[github.com/AniketAslaliya/disputecourt](https://github.com/AniketAslaliya/disputecourt)
+"""
+
 
 def get_llm_fn():
     """Returns a Gemini call function if keys are available, else None."""
@@ -286,6 +342,9 @@ with gr.Blocks(title="DisputeCourt — Visa 13.1 Chargeback Adjudicator") as dem
 
     submit.click(predict, inputs=[narrative, evidence, contradicted, mode], outputs=output)
     gr.Examples(examples=EXAMPLES, inputs=[narrative, evidence, contradicted, mode])
+
+    with gr.Accordion("Results & method — 100 held-out cases", open=False):
+        gr.Markdown(RESULTS_MD)
 
 demo.queue()
 
