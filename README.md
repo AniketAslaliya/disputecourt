@@ -199,7 +199,7 @@ far more than 1,500 samples.
 measurement, and training loop all work — verifiably, end to end, on a task with
 deterministic ground truth. What the run shows is that *this reward at this
 scale* optimises the wrong subset of its own objective. That is the failure mode
-`CLAUDE.md` flagged before training started, it is diagnosable from the numbers
+we flagged in writing before training started, it is diagnosable from the numbers
 above, and reporting an RL result that did not work is the entire point of a
 bar that says "honest metrics."
 
@@ -308,8 +308,6 @@ eval/           metrics, keyword control, model eval, comparison table
 app.py          Gradio demo
 SKILL.md         evidence rules matrix + persona definitions
 ARCHITECTURE.md  system design, data flow, training loop, safety gates
-SUBMISSION.md    application form answers
-VIDEO_SCRIPT.md  pitch video script
 ```
 
 ## Running

@@ -6,3 +6,12 @@ checkpoints/
 
 # transient eval logs
 data/_*.log
+
+# Internal working docs, kept locally, not part of the deliverable
+CLAUDE.md
+AGENTS.md
+PLAN.md
+SUBMISSION.md
+VIDEO_SCRIPT.md
+data/generated_cases_gemini_partial.jsonl
+data/generated_cases_pilot.jsonl
