@@ -45,17 +45,28 @@ Received) chargeback dispute.
 
 {rules}
 
-Case: {narrative}
-Evidence on file: {evidence_present}
+Read the merchant's case file below and decide which evidence items the merchant
+actually HOLDS. A case file may mention an evidence type only to say it is
+missing, unverified, or inconclusive -- that does not count as holding it.
+
+Case file: {narrative}
 
 Output ONLY a JSON object: {{"verdict": "represent"|"accept"|"abstain", \
 "confidence": <float 0-1>, "reasoning": "<short, references specific E-items>"}}"""
 
 
-def build_prompt(narrative: str, evidence_present: list) -> str:
-    return PROMPT_TEMPLATE.format(
-        rules=SKILL_MD_RULES_COMPACT, narrative=narrative, evidence_present=evidence_present
-    )
+def build_prompt(narrative: str, evidence_present: list | None = None) -> str:
+    """Narrative-only by design.
+
+    An earlier version passed `evidence_present` into the prompt alongside the
+    rules matrix. That made the task circular: the model was handed the exact
+    structured input the deterministic labeler uses, so it was re-executing a
+    lookup rather than reading a case file, and any accuracy it scored measured
+    nothing. `evidence_present` is accepted and ignored so existing callers do
+    not break; the ground-truth label still comes from it via labeler.py, but
+    the model never sees it.
+    """
+    return PROMPT_TEMPLATE.format(rules=SKILL_MD_RULES_COMPACT, narrative=narrative)
 
 
 def load_dataset(path: str):

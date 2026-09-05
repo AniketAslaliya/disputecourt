@@ -157,12 +157,128 @@ def _opener(amount: int, product: str) -> str:
             f"Customer disputes a ${amount} {product} purchase, claiming it was never received.",
             f"The cardholder filed a Visa 13.1 dispute on a ${amount} {product} order.",
             f"A ${amount} {product} charge was disputed as merchandise/services not received.",
+            f"Chargeback received under reason code 13.1 on a ${amount} {product} transaction.",
+            f"The issuer raised a non-receipt dispute for ${amount} covering a {product}.",
+            f"A ${amount} {product} order is being contested; the cardholder says nothing arrived.",
         ]
     )
 
 
+# Paraphrase pools. Each E-item has several surface forms so no single phrase is
+# a reliable tell -- the first version of this dataset used one fixed sentence
+# per E-item, which let a 12-line keyword matcher score 94% on the eval split.
+POSITIVE_CLAUSES = {
+    "E1": [
+        "Carrier tracking confirms a successful delivery scan.",
+        "The courier recorded a completed handover at the destination on the expected date.",
+        "Proof of delivery is on file: the parcel shows a delivered status with a timestamped scan.",
+        "The shipping partner's API returned a final delivered event for this consignment.",
+        "Merchant supplied the carrier's delivery receipt showing the package reached the address.",
+    ],
+    "E2": [
+        "Merchant access logs show the digital item was provisioned and used.",
+        "Server-side records show the account activated the entitlement and opened it several times.",
+        "The platform's audit trail captures the download completing from the customer's session.",
+        "Usage telemetry confirms the subscription was consumed after purchase.",
+        "Fulfilment logs show the licence was issued and subsequently redeemed.",
+    ],
+    "E3": [
+        "The delivery or account address matches billing with an AVS Y-match.",
+        "The ship-to address is identical to the billing address on the card; AVS returned a full match.",
+        "Address verification came back Y, and the parcel went to that same verified address.",
+        "The processor recorded an AVS M-response, and delivery was made to the matched address.",
+    ],
+    "E4": [
+        "A signature was captured at drop-off.",
+        "The carrier collected a signature when the parcel was handed over.",
+        "Delivery required and obtained a signature at the door.",
+    ],
+    "E5": [
+        "The same device fingerprint was used on a prior undisputed transaction with this card.",
+        "This card and browser fingerprint appear on an earlier order that was never disputed.",
+        "The customer has an older, settled purchase placed from the identical device signature.",
+        "Risk records tie this session to a previous clean transaction on the same card.",
+    ],
+    "E6": [
+        "Employment verification shows the cardholder worked at the delivery address on the delivery date.",
+        "HR confirmation establishes the cardholder was employed at the ship-to business on that date.",
+        "The merchant obtained written confirmation that the cardholder was staff at the delivery site.",
+    ],
+    "E7": [
+        "Support tickets show the customer contacted the merchant after the order.",
+        "There is an email thread between the buyer and support following the purchase.",
+        "The helpdesk log records inbound contact from the cardholder post-delivery.",
+    ],
+}
+
+# Decoys. Each mentions the SAME vocabulary as the positive clause it shadows
+# (AVS, tracking, signature, device, employment, logs) while stating the
+# merchant does NOT hold that proof. These make the task require reading rather
+# than keyword spotting. They never alter the label, which still comes from the
+# structured evidence set via labeler.py.
+DISTRACTOR_CLAUSES = {
+    "E1": [
+        "A shipping label was generated and the carrier accepted the parcel, but no delivered scan was ever recorded.",
+        "Tracking last updated to out-for-delivery and never progressed to a completed status.",
+        "The merchant can show the order was dispatched, though the courier never confirmed arrival.",
+        "Carrier tracking exists but terminates at the sorting facility with no delivery event.",
+    ],
+    "E2": [
+        "The fulfilment system issued a licence key, but there are no access or download logs for it.",
+        "An activation email was queued, though the platform holds no record of the account ever signing in.",
+        "The merchant can evidence provisioning intent but produced no usage or entitlement logs.",
+    ],
+    "E3": [
+        "The cardholder states the billing address on file is a former residence.",
+        "AVS returned an N-response on this authorisation.",
+        "The shipping address was typed in manually at checkout and does not correspond to the billing address on record.",
+        "Address verification was not run for this transaction, so no AVS result is available.",
+        "The order shipped to an address the cardholder had used before, but billing details were never matched against it.",
+    ],
+    "E4": [
+        "The carrier's proof-of-delivery photo shows the parcel left unattended; no signature was collected.",
+        "Signature on delivery was waived for this order value.",
+        "A signature line appears on the docket but was left blank.",
+    ],
+    "E5": [
+        "The merchant notes this was the customer's first order, with no prior transaction history on the card.",
+        "Device fingerprinting was not enabled at the time of this purchase.",
+        "Earlier orders exist on this account, but all of them were charged back as well.",
+    ],
+    "E6": [
+        "The parcel was addressed to a company mailroom, but the merchant holds no proof of the cardholder's employment there.",
+        "The delivery site is a shared office building; no employment record ties the cardholder to it.",
+        "The merchant assumed a workplace delivery but never verified the cardholder worked there.",
+    ],
+    "E7": [
+        "The merchant believes it replied to the cardholder, but no ticket or email thread was retained.",
+        "No inbound customer contact was logged before the chargeback was filed.",
+    ],
+}
+
+
+def _distractors_for(ev: set, kind: str, limit: int = 2) -> list:
+    """Pick decoys only for E-items the case does NOT have, so the narrative
+    stays truthful against the structured label."""
+    candidates = []
+    for item, pool in DISTRACTOR_CLAUSES.items():
+        if item in ev:
+            continue
+        # Don't offer a physical-delivery decoy on a digital case, or vice versa.
+        if kind == "digital" and item in {"E1", "E4"}:
+            continue
+        if kind == "physical" and item == "E2":
+            continue
+        candidates.append(random.choice(pool))
+    random.shuffle(candidates)
+    if not candidates:
+        return []
+    return candidates[: random.randint(1, limit)]
+
+
 def render_local_narrative(evidence: list[str], contradicted: bool, kind: str) -> str:
-    """Narrative mentions only the tagged evidence (and explicit gaps for abstain)."""
+    """Narrative states the tagged evidence, plus decoys for evidence the
+    merchant does not have. Verdict still comes from labeler.py, never here."""
     ev = set(evidence)
     amount = _money()
     product = random.choice(DIGITAL_PRODUCTS if kind == "digital" else PHYSICAL_PRODUCTS)
@@ -176,12 +292,18 @@ def render_local_narrative(evidence: list[str], contradicted: bool, kind: str) -
                         "Merchant tracking shows delivery to a different city than the billing address on this transaction.",
                         "The carrier scan shows the package was returned to sender as undeliverable before the dispute was filed.",
                         "Tracking shows the package was left at the wrong unit, not confirmed as received by the cardholder.",
+                        "The delivered scan resolves to a postcode several hundred miles from the cardholder's billing address.",
                     ]
                 )
             )
         elif "E2" in ev:
             clauses.append(
-                "Access logs show the digital good was provisioned to a different account email than the one on this transaction."
+                random.choice(
+                    [
+                        "Access logs show the digital good was provisioned to a different account email than the one on this transaction.",
+                        "The entitlement was activated under an unrelated account the cardholder has never controlled.",
+                    ]
+                )
             )
         elif ev == {"E4"}:
             clauses.append(
@@ -189,11 +311,18 @@ def render_local_narrative(evidence: list[str], contradicted: bool, kind: str) -
             )
         else:
             clauses.append(
-                "Merchant records show a full refund was already processed for this order before the dispute was filed."
+                random.choice(
+                    [
+                        "Merchant records show a full refund was already processed for this order before the dispute was filed.",
+                        "The merchant's own ledger shows this order was cancelled and credited back weeks earlier.",
+                    ]
+                )
             )
         if "E7" in ev:
-            clauses.append("A support ticket notes the customer reported the failed or misdirected delivery.")
-        return _opener(amount, product) + " " + " ".join(clauses)
+            clauses.append(random.choice(POSITIVE_CLAUSES["E7"]))
+        body = clauses + _distractors_for(ev | {"E3"}, kind, limit=1)
+        random.shuffle(body)
+        return _opener(amount, product) + " " + " ".join(body)
 
     if not ev:
         clauses.append(
@@ -201,30 +330,17 @@ def render_local_narrative(evidence: list[str], contradicted: bool, kind: str) -
                 [
                     "Merchant has no shipping record, tracking number, or delivery confirmation on file.",
                     "The merchant response contains only the original invoice with no delivery or access evidence.",
+                    "Nothing in the merchant's submission speaks to fulfilment; the packet is an order confirmation alone.",
                 ]
             )
         )
-    if "E1" in ev:
-        clauses.append("Carrier tracking confirms a successful delivery scan.")
-    if "E2" in ev:
-        clauses.append("Merchant access logs show the digital item was provisioned and used.")
-    if "E3" in ev:
-        clauses.append("The delivery or account address matches billing with an AVS Y-match.")
-    if "E4" in ev:
-        clauses.append("A signature was captured at drop-off.")
-    if "E5" in ev:
-        clauses.append("The same device fingerprint was used on a prior undisputed transaction with this card.")
-    if "E6" in ev:
-        clauses.append("Employment verification shows the cardholder worked at the delivery address on the delivery date.")
-    if "E7" in ev:
-        clauses.append("Support tickets show the customer contacted the merchant after the order.")
 
-    # Make abstain gaps explicit in the text so the panel is not guessing.
-    if ev & {"E1", "E2"} and not (ev & {"E3", "E5", "E6"}):
-        clauses.append(
-            "Merchant has no AVS match, device history, or employment record linking this fulfillment to the cardholder."
-        )
+    for item in ("E1", "E2", "E3", "E4", "E5", "E6", "E7"):
+        if item in ev:
+            clauses.append(random.choice(POSITIVE_CLAUSES[item]))
 
+    clauses.extend(_distractors_for(ev, kind, limit=2))
+    random.shuffle(clauses)
     return _opener(amount, product) + " " + " ".join(clauses)
 
 

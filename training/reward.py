@@ -14,6 +14,21 @@ CORRECTNESS_WEIGHT = 1.0
 CALIBRATION_WEIGHT = 0.5
 ABSTENTION_WEIGHT = 0.3
 
+# Asymmetric false-positive cost. The two error directions are not equally bad,
+# and Track 02's bar asks for false-positive cost explicitly, so the reward
+# encodes the same asymmetry eval/metrics.py reports rather than treating both
+# mistakes as one undifferentiated "wrong".
+#
+# wrong-represent (said represent, truth was accept) is the worse error: the
+# merchant pays a representment fee to fight a dispute that should have been
+# conceded, and it is the direction that drifts toward the coached-rebuttal
+# failure mode CLAUDE.md calls a disqualification risk.
+#
+# wrong-accept (said accept, truth was represent) costs recoverable revenue.
+# Real, but recoverable-in-expectation and never unsafe.
+FP_PENALTY_WRONG_REPRESENT = 0.6
+FP_PENALTY_WRONG_ACCEPT = 0.25
+
 VALID_VERDICTS = {"represent", "accept", "abstain"}
 
 
@@ -37,7 +52,7 @@ def parse_completion(text: str) -> dict | None:
 
 def compute_reward(completion_text: str, true_verdict: str) -> float:
     """
-    Single-case reward, roughly in [-1.65, 1.3].
+    Single-case reward, roughly in [-2.25, 1.3].
 
     Three terms, matching PLAN.md's reward design exactly:
     - correctness: +/- 1.0 for right/wrong verdict
@@ -66,7 +81,15 @@ def compute_reward(completion_text: str, true_verdict: str) -> float:
     elif true_verdict != "abstain" and pred_verdict == "abstain":
         abstention_term = -ABSTENTION_WEIGHT * 0.5
 
-    return correctness_term + calibration_term + abstention_term
+    # Asymmetric FP cost, scaled by how confidently the mistake was made --
+    # a hedged wrong answer is less costly to act on than a confident one.
+    fp_term = 0.0
+    if pred_verdict == "represent" and true_verdict == "accept":
+        fp_term = -FP_PENALTY_WRONG_REPRESENT * pred_conf
+    elif pred_verdict == "accept" and true_verdict == "represent":
+        fp_term = -FP_PENALTY_WRONG_ACCEPT * pred_conf
+
+    return correctness_term + calibration_term + abstention_term + fp_term
 
 
 def _completion_text(completion) -> str:

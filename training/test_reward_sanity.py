@@ -17,7 +17,12 @@ from collections import Counter
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from reward import compute_reward  # noqa: E402
 
-DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "seed_cases_labeled.jsonl"
+DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "train.jsonl"
+# Averaged over seeded trials. An earlier version sampled once over the 40
+# seed cases with an unseeded RNG, which made the ordering of the two
+# non-degenerate strategies a coin flip between runs -- a test that is only
+# right on average is not evidence you can put in a README.
+N_TRIALS = 12
 
 
 def load_true_verdicts() -> list[str]:
@@ -65,9 +70,17 @@ def strategy_constant_half_confidence_but_accurate(true_verdict: str) -> str:
     return json.dumps({"verdict": pred, "confidence": 0.5})
 
 
-def evaluate_strategy(name: str, strategy_fn, true_verdicts: list[str]) -> float:
-    rewards = [compute_reward(strategy_fn(tv), tv) for tv in true_verdicts]
-    return sum(rewards) / len(rewards)
+def evaluate_strategy(name: str, strategy_fn, true_verdicts: list[str]) -> tuple[float, float]:
+    import random as _random
+    import statistics
+
+    trial_means = []
+    for t in range(N_TRIALS):
+        _random.seed(1000 * t)
+        rewards = [compute_reward(strategy_fn(tv), tv) for tv in true_verdicts]
+        trial_means.append(sum(rewards) / len(rewards))
+    spread = statistics.stdev(trial_means) if len(trial_means) > 1 else 0.0
+    return statistics.mean(trial_means), spread
 
 
 if __name__ == "__main__":
@@ -88,9 +101,9 @@ if __name__ == "__main__":
     print("\nAverage reward per strategy:")
     results = {}
     for name, fn in strategies:
-        avg = evaluate_strategy(name, fn, true_verdicts)
+        avg, spread = evaluate_strategy(name, fn, true_verdicts)
         results[name] = avg
-        print(f"  {avg:+.3f}   {name}")
+        print(f"  {avg:+.3f}  +/-{spread:.3f}   {name}")
 
     best = max(results, key=results.get)
     print(f"\nHighest-reward strategy: '{best}'")
