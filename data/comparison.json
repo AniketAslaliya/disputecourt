@@ -1,0 +1,44 @@
+[
+  {
+    "label": "Keyword control (no AI)",
+    "n": 100,
+    "accuracy": 0.95,
+    "abstention_rate": 0.24,
+    "brier_score": 0.0875,
+    "false_positive_costs": {
+      "wrong_represent_count": 0,
+      "wrong_accept_count": 4,
+      "wrong_represent_cost": 0.0,
+      "wrong_accept_cost": 4.0,
+      "total_cost": 4.0
+    },
+    "confusion_matrix": {
+      "accept->accept": 35,
+      "represent->represent": 36,
+      "abstain->abstain": 24,
+      "abstain->accept": 1,
+      "represent->accept": 4
+    }
+  },
+  {
+    "label": "Base Qwen2.5-0.5B",
+    "n": 100,
+    "accuracy": 0.39,
+    "abstention_rate": 0.02,
+    "brier_score": 0.5042250000000004,
+    "false_positive_costs": {
+      "wrong_represent_count": 34,
+      "wrong_accept_count": 0,
+      "wrong_represent_cost": 34.0,
+      "wrong_accept_cost": 0.0,
+      "total_cost": 34.0
+    },
+    "confusion_matrix": {
+      "accept->represent": 34,
+      "represent->represent": 39,
+      "abstain->represent": 25,
+      "accept->abstain": 1,
+      "represent->abstain": 1
+    }
+  }
+]

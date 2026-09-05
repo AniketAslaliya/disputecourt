@@ -1,0 +1,22 @@
+{
+  "label": "Base Qwen2.5-0.5B (no RL)",
+  "n": 100,
+  "accuracy": 0.39,
+  "abstention_rate": 0.02,
+  "brier_score": 0.5042250000000004,
+  "false_positive_costs": {
+    "wrong_represent_count": 34,
+    "wrong_accept_count": 0,
+    "wrong_represent_cost": 34.0,
+    "wrong_accept_cost": 0.0,
+    "total_cost": 34.0
+  },
+  "confusion_matrix": {
+    "accept->represent": 34,
+    "represent->represent": 39,
+    "abstain->represent": 25,
+    "accept->abstain": 1,
+    "represent->abstain": 1
+  },
+  "unparseable": 2
+}

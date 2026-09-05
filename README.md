@@ -143,16 +143,31 @@ past out-for-delivery"). Labels come from the structured evidence set via
 | Wrong-accept (n) | 4 | 0 | _(running)_ |
 | Total FP cost | 4.0 | 34.0 | _(running)_ |
 
-**What the base model does, and why it is the interesting starting point.**
-Untuned, Qwen2.5-0.5B is a yes-man: it abstains on 2% of cases where the true
-abstain rate is 25%, and it produces **34 wrong-represents against 0
-wrong-accepts**. It tells the merchant to fight nearly everything. That is the
-expensive direction *and* the unsafe one — it is the behaviour that drifts
-toward contesting disputes that should be conceded. The reward's asymmetric
-false-positive penalty (0.6 for wrong-represent vs 0.25 for wrong-accept) and
-its abstention credit are aimed directly at that failure, so the delta to watch
-in the tuned column is not headline accuracy but **wrong-represent count and
-abstention rate moving toward the ground-truth distribution**.
+**The base model is a constant predictor, and its accuracy number hides that.**
+Its confusion matrix (`data/results_base.summary.json`):
+
+```
+accept    -> represent : 34
+represent -> represent : 39
+abstain   -> represent : 25     98 / 100 predictions are "represent"
+accept    -> abstain   :  1
+represent -> abstain   :  1
+```
+
+Untuned Qwen2.5-0.5B answers `represent` to essentially every case. It never
+once says "accept the loss." Its 39% accuracy is not competence — it is simply
+the prevalence of `represent` in the split (40%), which is exactly what a
+constant predictor scores. This is the clearest possible illustration of why
+accuracy alone is a bad metric for this problem, and why the abstention rate and
+the two FP directions are reported next to it: a single accuracy figure makes a
+model that has learned nothing look like it is nearly 40% of the way there.
+
+It is also the *unsafe* failure direction — a system that tells merchants to
+contest every dispute, including the 35 it should concede. The reward's
+asymmetric false-positive penalty (0.6 for wrong-represent vs 0.25 for
+wrong-accept) and its abstention credit target precisely this. So the number to
+watch in the tuned column is not headline accuracy but **wrong-represent count
+falling and abstention rate rising toward the ground-truth 25%**.
 
 **How to read the keyword control.** The first column is a hand-written
 keyword/regex extractor feeding the same rules matrix — no AI at all. It scores
