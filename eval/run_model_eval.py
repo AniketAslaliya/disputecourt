@@ -43,6 +43,16 @@ def load_model(model_id: str, adapter: str | None):
         dtype=torch.float16 if device == "cuda" else torch.float32,
     ).to(device)
     if adapter:
+        # peft falls back to treating a missing path as a Hub repo id, which
+        # surfaces as a confusing 401 from huggingface.co instead of "the
+        # training run didn't produce an adapter". Check locally first.
+        cfg = Path(adapter) / "adapter_config.json"
+        if not cfg.exists():
+            raise SystemExit(
+                f"No adapter at {adapter} (expected {cfg.name}).\n"
+                "The GRPO run either did not finish or saved elsewhere -- rerun "
+                "training/grpo_minimal.py before evaluating the tuned policy."
+            )
         from peft import PeftModel
 
         model = PeftModel.from_pretrained(model, adapter).to(device)
