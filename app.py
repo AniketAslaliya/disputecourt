@@ -23,9 +23,16 @@ except ImportError:
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "panel"))
 sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "training"))
 
 from personas import run_panel  # noqa: E402
 from labeler import Case, label, confidence_for, Verdict  # noqa: E402
+from train_grpo import build_prompt  # noqa: E402
+from reward import parse_completion  # noqa: E402
+
+MODE_RULES = "Rules matrix (deterministic, no AI)"
+MODE_POLICY = "RL policy — Qwen2.5-0.5B + GRPO (narrative only)"
+MODE_PANEL = "Court Panel — 3 personas (needs GEMINI_API_KEY)"
 
 EVIDENCE_LABELS = {
     "E1": "E1 — Delivery/tracking confirmation",
@@ -46,6 +53,77 @@ def get_llm_fn():
         from llm_client import call_gemini
         return call_gemini
     return None
+
+
+_POLICY = {}
+
+
+def run_rl_policy(narrative):
+    """The actual product: narrative in, verdict out, single forward pass.
+
+    Loads the GRPO adapter if one has been trained, otherwise the base model,
+    and says which it used -- an untuned base model labelled 'RL policy' in a
+    demo would be a lie by omission.
+    """
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    if not _POLICY:
+        base = "Qwen/Qwen2.5-0.5B-Instruct"
+        adapter = Path(__file__).resolve().parent / "training" / "checkpoints"
+        tok = AutoTokenizer.from_pretrained(base)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model = AutoModelForCausalLM.from_pretrained(
+            base, dtype=torch.float16 if device == "cuda" else torch.float32
+        ).to(device)
+        tuned = False
+        if (adapter / "adapter_config.json").exists():
+            from peft import PeftModel
+
+            model = PeftModel.from_pretrained(model, str(adapter)).to(device)
+            tuned = True
+        model.eval()
+        _POLICY.update(tok=tok, model=model, device=device, tuned=tuned)
+
+    prompt = build_prompt(narrative)
+    text = _POLICY["tok"].apply_chat_template(
+        [{"role": "user", "content": prompt}], tokenize=False, add_generation_prompt=True
+    )
+    inputs = _POLICY["tok"](text, return_tensors="pt").to(_POLICY["device"])
+    with torch.no_grad():
+        out = _POLICY["model"].generate(
+            **inputs, max_new_tokens=160, do_sample=False,
+            pad_token_id=_POLICY["tok"].eos_token_id,
+        )
+    raw = _POLICY["tok"].decode(
+        out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True
+    )
+    parsed = parse_completion(raw)
+    mode = ("GRPO-tuned policy" if _POLICY["tuned"]
+            else "Base Qwen2.5-0.5B (no adapter found — NOT RL-tuned)")
+    if parsed is None:
+        return {
+            "verdict": "abstain", "confidence": 0.5,
+            "reasoning": "Model did not return parseable JSON; abstaining rather than guessing.",
+            "rebuttal_draft": "", "mode": mode + " — unparseable output",
+        }
+    full = {}
+    try:
+        import json as _json
+        import re as _re
+
+        m = _re.search(r"\{.*\}", raw, _re.DOTALL)
+        full = _json.loads(m.group(0)) if m else {}
+    except Exception:
+        full = {}
+    rebuttal = full.get("rebuttal_draft", "") if parsed["verdict"] == "represent" else ""
+    return {
+        "verdict": parsed["verdict"],
+        "confidence": round(parsed["confidence"], 2),
+        "reasoning": full.get("reasoning", raw[:300]),
+        "rebuttal_draft": rebuttal,
+        "mode": mode + " (narrative-only, 1 forward pass)",
+    }
 
 
 def run_rules_only(narrative, evidence_ids, contradicted):
@@ -92,17 +170,22 @@ def run_full_panel(narrative, evidence_ids, contradicted):
 
 
 @_gpu_decorator
-def predict(narrative, evidence_checkboxes, contradicted, use_panel):
+def predict(narrative, evidence_checkboxes, contradicted, mode):
     if not narrative.strip():
         return "Please enter a case narrative."
 
     evidence_ids = [eid for eid in EVIDENCE_IDS if EVIDENCE_LABELS[eid] in evidence_checkboxes]
 
-    if use_panel:
+    if mode == MODE_PANEL:
         result = run_full_panel(narrative, evidence_ids, contradicted)
         if result is None:
             result = run_rules_only(narrative, evidence_ids, contradicted)
             result["mode"] += " (GEMINI_API_KEY not set — fell back to rules-only)"
+    elif mode == MODE_POLICY:
+        # Narrative only. The evidence checkboxes are deliberately NOT passed:
+        # handing the model the structured evidence set would be handing it the
+        # labeler's input, which is the circularity this project had to fix.
+        result = run_rl_policy(narrative)
     else:
         result = run_rules_only(narrative, evidence_ids, contradicted)
 
@@ -127,25 +210,25 @@ EXAMPLES = [
         "Customer disputes a $210 physical order. Tracking confirms delivery to the billing address (AVS Y-match). Standard order value, no signature required.",
         [EVIDENCE_LABELS["E1"], EVIDENCE_LABELS["E3"]],
         False,
-        False,
+        MODE_RULES,
     ],
     [
         "Customer disputes a $95 charge for merchandise. Merchant has no shipping record, no tracking number, and no delivery confirmation on file.",
         [],
         False,
-        False,
+        MODE_RULES,
     ],
     [
         "Customer disputes a $890 jewelry order. Delivery confirmed with signature capture, but the merchant has no AVS match, device match, or employment record on file — the signature name is illegible.",
         [EVIDENCE_LABELS["E1"], EVIDENCE_LABELS["E4"]],
         False,
-        False,
+        MODE_RULES,
     ],
     [
         "Customer disputes a $150 order. Merchant's tracking shows the package was delivered, but to a different city than the cardholder's billing address.",
         [EVIDENCE_LABELS["E1"]],
         True,
-        False,
+        MODE_RULES,
     ],
 ]
 
@@ -176,19 +259,22 @@ with gr.Blocks(title="DisputeCourt — Visa 13.1 Chargeback Adjudicator") as dem
                 choices=list(EVIDENCE_LABELS.values()),
                 label="Evidence Present",
             )
-            with gr.Row():
-                contradicted = gr.Checkbox(label="Evidence contradicted (e.g. wrong address)")
-                use_panel = gr.Checkbox(
-                    label="Use Court Panel (needs GEMINI_API_KEY)",
-                    value=False,
-                )
+            contradicted = gr.Checkbox(label="Evidence contradicted (e.g. wrong address)")
+            mode = gr.Radio(
+                choices=[MODE_RULES, MODE_POLICY, MODE_PANEL],
+                value=MODE_RULES,
+                label="Adjudication mode",
+                info="The RL policy reads the narrative only — it never sees the "
+                     "checkboxes above. First run downloads the model (~1GB) and "
+                     "takes ~20s on CPU.",
+            )
             submit = gr.Button("Adjudicate", variant="primary")
 
         with gr.Column(scale=2):
             output = gr.Markdown(label="Result")
 
-    submit.click(predict, inputs=[narrative, evidence, contradicted, use_panel], outputs=output)
-    gr.Examples(examples=EXAMPLES, inputs=[narrative, evidence, contradicted, use_panel])
+    submit.click(predict, inputs=[narrative, evidence, contradicted, mode], outputs=output)
+    gr.Examples(examples=EXAMPLES, inputs=[narrative, evidence, contradicted, mode])
 
 demo.queue()
 
