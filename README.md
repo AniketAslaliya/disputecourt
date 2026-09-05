@@ -136,12 +136,72 @@ past out-for-delivery"). Labels come from the structured evidence set via
 
 | Metric | Keyword control (no AI) | Base Qwen2.5-0.5B | GRPO-tuned |
 |---|---|---|---|
-| Accuracy | 95.0% | 39.0% | _(running)_ |
-| Abstention rate | 24.0% | 2.0% | _(running)_ |
-| Brier score | 0.087 | 0.504 | _(running)_ |
-| Wrong-represent (n) | 0 | 34 | _(running)_ |
-| Wrong-accept (n) | 4 | 0 | _(running)_ |
-| Total FP cost | 4.0 | 34.0 | _(running)_ |
+| Accuracy | 95.0% | 39.0% | 40.0% |
+| Abstention rate | 24.0% | 2.0% | 0.0% |
+| Brier score | 0.087 | 0.504 | **0.407** |
+| Wrong-represent (n) | 0 | 34 | 35 |
+| Wrong-accept (n) | 4 | 0 | 0 |
+| Total FP cost | 4.0 | 34.0 | 35.0 |
+| Unparseable output | — | 2 | **0** |
+
+GRPO: 250 steps, group size 6 (1,500 sampled completions), LoRA r=16 on
+Qwen2.5-0.5B, free Colab T4. Training reward rose from **−0.924** to **−0.650**
+(`data/training_curve.png`).
+
+### The headline result is negative, and the mechanism is legible
+
+**Training reward improved. Task performance did not.** Accuracy moved 39% → 40%
+— one case, indistinguishable from noise. Wrong-represents went 34 → 35.
+Abstention went 2% → **0%**, which is worse.
+
+What genuinely improved is narrower and identifiable:
+
+- **Format compliance:** 2 unparseable outputs → 0.
+- **Calibration:** Brier 0.504 → 0.407. At near-identical accuracy that is
+  purely a confidence drop — solving the Brier decomposition gives a mean
+  stated confidence of **~0.91 → ~0.81**.
+
+So the reward went up because the policy learned to **emit valid JSON and hedge
+its confidence**, not to adjudicate. The reward has four terms; a 0.5B model
+given 1,500 samples can learn two of them and not the third:
+
+| Reward term | Learnable in 250 steps? |
+|---|---|
+| Valid JSON (−1.5 floor) | **Yes** — pure format |
+| Calibration (Brier) | **Yes** — just lower confidence |
+| Abstention credit | No — requires knowing *which* cases are ambiguous |
+| Verdict correctness | No — requires actually reading the case file |
+
+The policy took the available points. Two design details made that the
+path of least resistance, and both are ours:
+
+1. **The FP penalty is scaled by stated confidence**
+   (`−0.6 × conf` for wrong-represent). Lowering confidence reduces the penalty
+   *without getting a single additional case right*. We intended this to
+   discourage confident errors; it also created a gradient toward hedging that
+   is far easier to follow than learning the task.
+2. **Abstention collapsed rather than grew.** Correctly abstaining is the
+   highest-reward action available (+1.0 correctness +0.3 credit = +1.3), but
+   only if you can tell which cases qualify. A model that can't will find that
+   always-`represent` (40% prevalence) beats always-`abstain` (25%) — so it
+   went to 0% abstention, which is rational under the reward and useless in
+   production.
+
+**What we would change with more time**, in priority order: (a) start from a
+supervised warm-start on evidence extraction so the correctness term has a
+non-zero gradient before RL begins — GRPO cannot bootstrap a skill the base
+policy never exhibits; (b) decouple the FP penalty from stated confidence so
+hedging is not a cheap substitute for accuracy; (c) a 1.5B–7B base — 0.5B may
+simply lack the capacity to track seven evidence items with distractors; (d)
+far more than 1,500 samples.
+
+**Why this is reported rather than buried.** The pipeline, reward, calibration
+measurement, and training loop all work — verifiably, end to end, on a task with
+deterministic ground truth. What the run shows is that *this reward at this
+scale* optimises the wrong subset of its own objective. That is the failure mode
+`CLAUDE.md` flagged before training started, it is diagnosable from the numbers
+above, and reporting an RL result that did not work is the entire point of a
+bar that says "honest metrics."
 
 **The base model is a constant predictor, and its accuracy number hides that.**
 Its confusion matrix (`data/results_base.summary.json`):
@@ -164,10 +224,9 @@ model that has learned nothing look like it is nearly 40% of the way there.
 
 It is also the *unsafe* failure direction — a system that tells merchants to
 contest every dispute, including the 35 it should concede. The reward's
-asymmetric false-positive penalty (0.6 for wrong-represent vs 0.25 for
-wrong-accept) and its abstention credit target precisely this. So the number to
-watch in the tuned column is not headline accuracy but **wrong-represent count
-falling and abstention rate rising toward the ground-truth 25%**.
+asymmetric false-positive penalty and its abstention credit were aimed precisely
+at this, and **they did not move it**: the tuned column still shows 35
+wrong-represents and 0% abstention. See the analysis under the results table.
 
 **How to read the keyword control.** The first column is a hand-written
 keyword/regex extractor feeding the same rules matrix — no AI at all. It scores

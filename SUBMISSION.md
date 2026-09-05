@@ -76,7 +76,7 @@ https://github.com/AniketAslaliya/disputecourt
 
 ## 5-min Pitch Video Link
 
-`[FILL — see VIDEO_SCRIPT.md]`
+`[FILL — paste the unlisted video URL here before submitting]`
 
 ---
 
@@ -126,7 +126,35 @@ the LoRA-disabled base model as a free reference. The notebook now installs one
 package. Related: I train in **fp32 on the T4**, because fp16 GRPO goes NaN once
 advantages get small, and a 0.5B model in fp32 fits in 16GB comfortably.
 
-**5. My reward sanity test was a coin flip.**
+**5. The GRPO run improved the reward and did not learn the task — and the
+numbers say exactly why.**
+Training reward rose from −0.924 to −0.650 over 250 steps. Accuracy moved 39% →
+40%: one case, noise. Abstention went 2% → 0%, which is *worse*. What actually
+improved was narrow — unparseable outputs 2 → 0, and Brier 0.504 → 0.407, which
+at flat accuracy is purely a confidence drop (mean stated confidence ~0.91 →
+~0.81). The policy learned to emit valid JSON and hedge, not to adjudicate.
+
+The reward has four terms and a 0.5B model on 1,500 samples can learn two of
+them: JSON validity and calibration are directly optimisable, while verdict
+correctness requires reading the case file and abstention credit requires knowing
+*which* cases are ambiguous. It took the available points. Two of my own design
+choices made that the easy path: the false-positive penalty is scaled by stated
+confidence, so hedging reduces it without getting anything right; and correct
+abstention is the highest-reward action (+1.3) but unreachable for a model that
+can't identify ambiguity — so always-`represent` (40% prevalence) dominates
+always-`abstain` (25%), and abstention collapsed to zero. Rational under the
+reward, useless in production.
+
+Fixes in priority order: a supervised warm-start on evidence extraction so the
+correctness term has a non-zero gradient before RL starts (GRPO cannot bootstrap
+a skill the base policy never exhibits); decouple the FP penalty from stated
+confidence; a larger base model; far more samples. I am reporting this rather
+than burying it because the pipeline, reward, and calibration measurement all
+verifiably work — what the run demonstrates is that *this reward at this scale*
+optimises the wrong subset of its own objective, which is precisely the failure
+mode I flagged in writing before spending the compute.
+
+**6. My reward sanity test was a coin flip.**
 The test that certifies the reward doesn't incentivise degenerate policies
 sampled *once* over 40 cases with an unseeded RNG. On one run it reported that
 flat-0.5 hedging beat genuine calibration — which, if true, would mean GRPO

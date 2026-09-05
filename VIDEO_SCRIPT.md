@@ -90,19 +90,40 @@ GRPO didn't finish, use **Branch B** at 3:00 — it's written, and it's honest.
 > Thirty-four wrong-represents, zero wrong-accepts — it tells merchants to fight
 > everything. The expensive direction, and the unsafe one."
 
-### → Branch A — GRPO finished
+### → The GRPO result — say this straight, don't soften it
 
-> "After GRPO: [accuracy]. But the number I care about is wrong-represents
-> dropping from thirty-four to [N], and abstention moving from two percent toward
-> the true twenty-five. The reward's cost asymmetry did that."
+*(Show `data/training_curve.png` while you talk.)*
 
-### → Branch B — GRPO didn't finish
-
-> "The GRPO run didn't finish in my window — three attempts lost to Colab
-> environment failures, one to a real bug of mine, a full-vocabulary softmax that
-> OOM'd a T4. The loop runs and is verified end to end on CPU. What I don't have
-> is a tuned column, and I'd rather show an empty cell than a number I can't
-> reproduce."
+> "Now the RL column, and this is a negative result — I'd rather walk you through
+> it than dress it up.
+>
+> Training reward went from minus point nine to minus point six-five, so the
+> policy was learning something. But accuracy went thirty-nine to forty percent —
+> one case, that's noise. And abstention went from two percent to zero, which is
+> worse.
+>
+> What actually improved: unparseable outputs went from two to zero, and Brier
+> improved from point five-oh to point four-one. At flat accuracy that's purely a
+> confidence drop — mean confidence went from about point nine-one to point
+> eight-one.
+>
+> So the model learned to emit valid JSON and hedge. It did not learn to
+> adjudicate. My reward has four terms, and a half-billion-parameter model on
+> fifteen hundred samples can learn two of them — JSON validity and calibration —
+> but not verdict correctness, which needs actual reading, and not abstention
+> credit, which needs knowing *which* cases are ambiguous. It took the points that
+> were available.
+>
+> And two of those were my own design errors. My false-positive penalty scales
+> with stated confidence — so hedging reduces the penalty without getting a single
+> case right. And correct abstention is the highest-reward action available, but
+> only if you can spot ambiguity; a model that can't will find that always-
+> represent at forty percent prevalence beats always-abstain at twenty-five. So
+> abstention went to zero. Rational under my reward. Useless in production.
+>
+> What I'd change: warm-start on evidence extraction first, because GRPO can't
+> bootstrap a skill the base policy never shows. Decouple that penalty from
+> confidence. Bigger base model. Many more samples."
 
 ### Either branch, then:
 
