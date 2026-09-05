@@ -56,12 +56,23 @@ def completion_logprobs(model, input_ids, attention_mask, prompt_len):
 
     logits[:, t] predicts token t+1, so we align by dropping the last logit
     and the first token id.
+
+    Memory note: this deliberately does NOT call log_softmax. Qwen's vocab is
+    151,936, so a full [batch, seq, vocab] float32 softmax is ~1.6GB for a group
+    of 6 -- and it OOMs a 16GB T4 once you need it for both the policy and the
+    reference pass with an autograd graph retained. We only ever need the
+    logprob of one target token per position, and
+
+        log p(target) = logit[target] - logsumexp(logits)
+
+    gets exactly that while allocating [batch, seq] instead of
+    [batch, seq, vocab].
     """
     out = model(input_ids=input_ids, attention_mask=attention_mask)
     logits = out.logits[:, :-1, :]
     targets = input_ids[:, 1:]
-    logp = torch.log_softmax(logits.float(), dim=-1)
-    tok_logp = logp.gather(-1, targets.unsqueeze(-1)).squeeze(-1)
+    selected = logits.gather(-1, targets.unsqueeze(-1)).squeeze(-1)
+    tok_logp = selected - torch.logsumexp(logits, dim=-1)
 
     # Mask: completion tokens only, and only up to (and including) the first EOS.
     mask = attention_mask[:, 1:].clone().float()
@@ -81,6 +92,9 @@ def main():
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--kl-beta", type=float, default=0.02, help="0 disables the KL penalty.")
     ap.add_argument("--accum", type=int, default=2, help="Groups per optimizer step.")
+    ap.add_argument("--micro-batch", type=int, default=2,
+                    help="Sequences per forward pass. Lower this first if you OOM; "
+                         "it changes peak memory but not the gradient.")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
 
@@ -156,20 +170,46 @@ def main():
         attn = (gen != tok.pad_token_id).long()
         attn[:, :prompt_len] = enc["attention_mask"].repeat(args.group_size, 1)
 
-        model.train()
-        tok_logp, mask = completion_logprobs(model, gen, attn, prompt_len)
-        pg = -(adv.unsqueeze(1) * tok_logp * mask).sum() / mask.sum().clamp(min=1)
+        # Normaliser computed over the whole group up front, so that each
+        # micro-batch's partial loss divides by the same denominator and the
+        # accumulated gradient equals the gradient of the full-group loss.
+        full_mask = attn[:, 1:].float().clone()
+        full_mask[:, : prompt_len - 1] = 0.0
+        total_tokens = full_mask.sum().clamp(min=1)
 
-        kl = torch.tensor(0.0, device=device)
+        # Reference logprobs, chunked and detached. Result is [G, T] floats --
+        # a few kilobytes -- so the big activations are freed before the policy
+        # pass builds its autograd graph.
+        ref_all = None
         if args.kl_beta > 0:
+            model.eval()
             with torch.no_grad(), model.disable_adapter():
-                ref_logp, _ = completion_logprobs(model, gen, attn, prompt_len)
-            # k3 estimator: always non-negative, lower variance than (logp_ref - logp).
-            diff = ref_logp - tok_logp
-            kl = ((diff.exp() - diff - 1.0) * mask).sum() / mask.sum().clamp(min=1)
+                parts = []
+                for s in range(0, args.group_size, args.micro_batch):
+                    e = min(s + args.micro_batch, args.group_size)
+                    rl, _ = completion_logprobs(model, gen[s:e], attn[s:e], prompt_len)
+                    parts.append(rl)
+                ref_all = torch.cat(parts, dim=0)
+                del parts
 
-        loss = (pg + args.kl_beta * kl) / args.accum
-        loss.backward()
+        model.train()
+        pg_total, kl_total = 0.0, 0.0
+        for s in range(0, args.group_size, args.micro_batch):
+            e = min(s + args.micro_batch, args.group_size)
+            tok_logp, mask = completion_logprobs(model, gen[s:e], attn[s:e], prompt_len)
+            pg_c = -(adv[s:e].unsqueeze(1) * tok_logp * mask).sum() / total_tokens
+            kl_c = torch.zeros((), device=device)
+            if ref_all is not None:
+                # k3 estimator: non-negative, lower variance than (ref - logp).
+                # Clamped because exp() of a large positive diff overflows early
+                # in training when the adapter has drifted on a rare token.
+                diff = (ref_all[s:e] - tok_logp).clamp(-20.0, 20.0)
+                kl_c = ((diff.exp() - diff - 1.0) * mask).sum() / total_tokens
+            ((pg_c + args.kl_beta * kl_c) / args.accum).backward()
+            pg_total += pg_c.item()
+            kl_total += kl_c.item()
+            del tok_logp, mask, pg_c, kl_c
+        del ref_all
 
         if step % args.accum == 0:
             torch.nn.utils.clip_grad_norm_(
@@ -180,15 +220,15 @@ def main():
 
         history.append({
             "step": step, "reward_mean": rewards.mean().item(),
-            "reward_std": rewards.std().item(), "kl": kl.item(),
-            "loss": pg.item(), "skipped": False,
+            "reward_std": rewards.std().item(), "kl": kl_total,
+            "loss": pg_total, "skipped": False,
         })
 
         if step % 5 == 0:
             recent = [h["reward_mean"] for h in history[-20:]]
             el = time.time() - t0
             print(f"step {step}/{len(rows)}  reward(last20)={sum(recent)/len(recent):+.3f}  "
-                  f"kl={kl.item():.4f}  {el/step:.1f}s/step  "
+                  f"kl={kl_total:.4f}  {el/step:.1f}s/step  "
                   f"~{el/step*(len(rows)-step)/60:.1f} min left", flush=True)
 
     out = Path(args.output)
