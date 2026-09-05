@@ -1,35 +1,32 @@
 # 5-Minute Pitch Video — Word-for-Word Script
 
-Read the quoted lines aloud while screen-recording. Narration is ~4:15 at a
-normal pace (~145 wpm), leaving ~40s for clicking through the demo and letting
-the table render. Lands around 4:50.
+Read the quoted lines aloud while screen-recording. ~640 spoken words ≈ **4:05 at
+a normal pace**, leaving ~40s for clicking through the demo and letting the table
+render. Lands around **4:45**.
 
 **Setup before you hit record**
 - `python app.py` running in a browser tab, examples loaded
-- A terminal at the repo root, ready to run `python eval/compare_all.py`
-- `SKILL.md` and `training/reward.py` open in tabs
+- A terminal at the repo root with `python eval/compare_all.py` ready to run
+- `SKILL.md` and `data/training_curve.png` open in tabs
 - OBS or Loom at 1080p, mic tested
 
-**The one rule:** never say a number that isn't in `data/comparison.json`. If
-GRPO didn't finish, use **Branch B** at 3:00 — it's written, and it's honest.
+**The one rule:** every number below is from `data/comparison.json`. Don't add any.
 
 ---
 
-## 0:00 – 0:30 — Problem  *(webcam or title card)*
+## 0:00 – 0:25 — Problem
 
 > "Merchants lose money on chargebacks in two opposite directions at once. They
 > fight disputes they were never going to win, paying a representment fee for the
 > privilege. And they concede disputes they had the evidence to win.
 >
 > A single win-rate number can't tell you which way you're bleeding — the two
-> errors cancel in the average. DisputeCourt measures them separately.
->
-> Track 2, AI Risk Manager, on one Visa reason code: 13.1, merchandise or
-> services not received."
+> errors cancel in the average. DisputeCourt measures them separately. Track 2,
+> on one Visa reason code: 13.1, merchandise not received."
 
 ---
 
-## 0:30 – 1:20 — Demo  *(screen: the Gradio app — run all three examples)*
+## 0:25 – 1:10 — Demo  *(run all three examples)*
 
 > "Three outputs: a verdict, a calibrated confidence, and a rebuttal draft.
 >
@@ -45,122 +42,94 @@ GRPO didn't finish, use **Branch B** at 3:00 — it's written, and it's honest.
 
 ---
 
-## 1:20 – 2:05 — Ground truth  *(screen: `SKILL.md`, then `scripts/labeler.py`)*
+## 1:10 – 1:50 — Ground truth  *(screen: `SKILL.md`, then `scripts/labeler.py`)*
 
 > "Here's what makes the numbers mean anything.
 >
 > Every label comes from a rules matrix built from Visa's published evidence
-> requirements for 13.1. Proof of delivery, plus something linking it to this
-> cardholder, nothing contradicting it — represent. No proof of delivery, or
-> evidence that undermines the merchant — accept. Anything unresolved — abstain.
+> requirements. Proof of delivery, plus something linking it to this cardholder,
+> nothing contradicting it — represent. No proof of delivery — accept. Anything
+> unresolved — abstain.
 >
 > Ninety lines of Python, and it's the only thing here that assigns a label. I
-> never ask a model 'would this win?' — that's training a model to imitate
-> another model's guess and reporting the agreement as accuracy."
+> never ask a model 'would this win?' — that's training a model to imitate another
+> model's guess and reporting the agreement as accuracy."
 
 ---
 
-## 2:05 – 2:50 — Reward and GRPO  *(screen: `training/reward.py`, then `grpo_minimal.py`)*
+## 1:50 – 2:20 — Reward  *(screen: `training/reward.py`)*
 
-> "The policy is a half-billion-parameter Qwen fine-tuned with GRPO.
+> "The policy is a half-billion-parameter Qwen tuned with GRPO, written directly
+> rather than through a framework.
 >
-> Three reward terms: correctness against the matrix; a Brier-style calibration
-> term, so confident-and-wrong hurts more than uncertain-and-wrong; and abstention
-> credit, so escalating an ambiguous case pays better than guessing.
->
-> Plus what the brief names explicitly — false-positive cost. Wrongly representing
-> and wrongly accepting aren't equally bad, so they carry different penalties.
->
-> And this is GRPO written directly, not a framework call — the advantage is
-> computed within the group, which is what removes the value network."
+> Four reward terms: correctness against the matrix, Brier-style calibration,
+> abstention credit for escalating ambiguous cases, and — the thing the brief names
+> explicitly — false-positive cost, with wrongly representing penalised harder than
+> wrongly accepting."
 
 ---
 
-## 2:50 – 4:00 — The numbers  *(run `python eval/compare_all.py` live)*
+## 2:20 – 3:10 — The base model  *(run `python eval/compare_all.py`)*
 
 > "Same hundred held-out cases, same prompt, same parser for every column.
 >
-> Base model, before any RL: thirty-nine percent. That number is a trap, and the
+> Base model, before RL: thirty-nine percent. That number is a trap, and the
 > confusion matrix shows why — it answers 'represent' to ninety-eight cases out of
 > a hundred. It never once says 'accept the loss.' Thirty-nine percent is just the
-> base rate of represent in my split. A constant predictor that learned nothing,
+> prevalence of represent in my split. A constant predictor that learned nothing,
 > and plain accuracy makes it look forty percent competent.
 >
 > That's why abstention rate and both error directions sit next to accuracy here.
 > Thirty-four wrong-represents, zero wrong-accepts — it tells merchants to fight
 > everything. The expensive direction, and the unsafe one."
 
-### → The GRPO result — say this straight, don't soften it
+---
 
-*(Show `data/training_curve.png` while you talk.)*
+## 3:10 – 4:05 — The RL result  *(show `data/training_curve.png`)*
 
-> "Now the RL column, and this is a negative result — I'd rather walk you through
+> "Now the RL column — and this is a negative result. I'd rather walk you through
 > it than dress it up.
 >
-> Training reward went from minus point nine to minus point six-five, so the
-> policy was learning something. But accuracy went thirty-nine to forty percent —
-> one case, that's noise. And abstention went from two percent to zero, which is
-> worse.
+> Training reward improved, minus point nine to minus point six-five. But accuracy
+> went thirty-nine to forty percent — one case, noise. Abstention went two percent
+> to zero, which is worse.
 >
-> What actually improved: unparseable outputs went from two to zero, and Brier
-> improved from point five-oh to point four-one. At flat accuracy that's purely a
-> confidence drop — mean confidence went from about point nine-one to point
-> eight-one.
+> What did improve: unparseable outputs, two to zero. And Brier, point five-oh to
+> point four-one — at flat accuracy that's purely a confidence drop.
 >
-> So the model learned to emit valid JSON and hedge. It did not learn to
-> adjudicate. My reward has four terms, and a half-billion-parameter model on
-> fifteen hundred samples can learn two of them — JSON validity and calibration —
-> but not verdict correctness, which needs actual reading, and not abstention
-> credit, which needs knowing *which* cases are ambiguous. It took the points that
-> were available.
+> So it learned to emit valid JSON and hedge. It did not learn to adjudicate. Of
+> my four reward terms, a half-billion-parameter model on fifteen hundred samples
+> can learn two — format and calibration — but not verdict correctness, which
+> needs reading, or abstention credit, which needs knowing which cases are
+> ambiguous. It took the points that were available.
 >
-> And two of those were my own design errors. My false-positive penalty scales
-> with stated confidence — so hedging reduces the penalty without getting a single
-> case right. And correct abstention is the highest-reward action available, but
-> only if you can spot ambiguity; a model that can't will find that always-
-> represent at forty percent prevalence beats always-abstain at twenty-five. So
-> abstention went to zero. Rational under my reward. Useless in production.
->
-> What I'd change: warm-start on evidence extraction first, because GRPO can't
-> bootstrap a skill the base policy never shows. Decouple that penalty from
-> confidence. Bigger base model. Many more samples."
-
-### Either branch, then:
-
-> "The first column is a keyword matcher — no AI at all — and I want to be
-> straight about it. Ninety-five percent, and it scores that high because I wrote
-> it after I wrote the data generator, so it matches my own templates. Any finite
-> template generator is invertible by whoever read the templates. That's a real
-> limitation of synthetic data. It's in the README, and I kept the column rather
-> than delete the number that complicates my story."
+> Two of those were my design errors. My false-positive penalty scales with stated
+> confidence, so hedging reduces it without getting anything right. And
+> always-represent at forty percent prevalence beats always-abstain at twenty-five,
+> so abstention collapsed. Rational under my reward. Useless in production. The fix
+> is a supervised warm-start on evidence extraction — GRPO can't bootstrap a skill
+> the base policy never shows."
 
 ---
 
-## 4:00 – 4:35 — What broke
+## 4:05 – 4:45 — Keyword control, safety, close
 
-> "The one that mattered most: my prompt was handing the model the structured
-> evidence field — the exact input my labeler uses to build the ground truth. It
-> wasn't reading a case file, it was re-running a lookup it already had the
-> answers to. Every accuracy number before I caught that was measuring nothing.
+*If you're already past 4:15 when you reach this, **skip the keyword-control
+paragraph** and go straight to the safety lines. It's fully covered in the
+README; the safety close is not, and matters more on camera.*
+
+> "One more column: a keyword matcher, no AI. Ninety-five percent — and it scores
+> that high because I wrote it *after* the data generator, so it matches my own
+> templates. Any finite template generator is invertible by whoever read it. That's
+> a real limit of synthetic data, it's in the README, and I kept the column rather
+> than delete the number that complicates my story.
 >
-> That's why the model now only ever sees prose, and has to recover the evidence
-> set itself."
-
-*(Two more are written up in the form answer and the README — the unseeded
-reward sanity test, and the full-vocab softmax that OOM'd the T4. Only mention
-them if you're comfortably under time.)*
-
----
-
-## 4:35 – 4:50 — Safety and close
-
-> "One rule throughout: low-confidence or evidence-thin cases route to accept the
-> loss — never to a fabricated or coached rebuttal. The drafter is only reachable
-> on a represent verdict, it can only restate evidence the case contains, and a
-> hard check raises if a rebuttal appears anywhere else.
+> And one rule throughout: evidence-thin cases route to accept the loss, never to
+> a fabricated rebuttal. The drafter is only reachable on a represent verdict, and
+> a hard check raises if a rebuttal appears anywhere else.
 >
-> This helps a merchant truthfully assemble evidence they already have. It does
-> not help them win a dispute they should lose. Repo's linked — thanks."
+> This helps a merchant truthfully assemble evidence they already have. It doesn't
+> help them win a dispute they should lose. Repo's linked — thanks."
 
 ---
 

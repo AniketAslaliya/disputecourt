@@ -1,8 +1,8 @@
 # Submission — Razorpay AI Builder Internship 2026
 
-Draft answers for the application form. Numbers marked `[FILL]` come from
-`data/comparison.json` once the Colab run finishes — paste them in before
-submitting, and do not submit with a placeholder still in place.
+Draft answers for the application form. All metrics are measured and final
+(`data/comparison.json`). The only remaining `[FILL]` is the video URL — do
+not submit with a placeholder still in place.
 
 ---
 
@@ -44,6 +44,9 @@ Three things make it different from wrapping an LLM in a prompt:
    answer is guessing on the hard cases and hiding it in the average. ~25% of
    the dataset is deliberately constructed to be genuinely ambiguous, and the
    RL reward pays for correctly escalating those instead of forcing a call.
+   Honest caveat: the *reward* prices abstention correctly; the trained 0.5B
+   policy still failed to use it (0% abstention). The mechanism is diagnosed
+   in Build Challenges #5.
 
 3. **Both error directions are costed separately.** Wrongly representing
    (fighting an unwinnable dispute) and wrongly accepting (conceding a winnable
@@ -61,10 +64,12 @@ draft a persuasive case out of thin evidence.
 **Architecture.** A 3-persona Court Panel (Cardholder-side advocate finds
 evidence gaps, Merchant-side advocate states what is satisfied, Network-Rules
 Referee applies the matrix and declares the verdict) as the prompted baseline,
-plus a Qwen2.5-0.5B policy fine-tuned with GRPO against a three-term reward
-(correctness + calibration + abstention credit, with asymmetric false-positive
-cost). The RL policy collapses the 3-call debate into a single forward pass at
-inference.
+plus a Qwen2.5-0.5B policy fine-tuned with GRPO against a four-term reward
+(correctness, calibration, abstention credit, asymmetric false-positive cost).
+The RL policy collapses the 3-call debate into a single forward pass at
+inference. **The trained policy did not beat its own baseline on verdict
+accuracy** — see Build Challenges #5, which reports what it did and did not
+learn and why.
 
 ---
 
