@@ -308,6 +308,8 @@ eval/           metrics, keyword control, model eval, comparison table
 app.py          Gradio demo
 SKILL.md         evidence rules matrix + persona definitions
 ARCHITECTURE.md  system design, data flow, training loop, safety gates
+PLAN.md          day-one plan, with a final status block on what shipped
+CLAUDE.md        build constraints this project was held to
 ```
 
 ## Running
