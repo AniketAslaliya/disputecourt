@@ -1,3 +1,9 @@
 gradio>=4.0
 google-genai
 spaces
+# RL-policy demo mode. CPU wheels -- a Space runs 0.5B inference in ~20-40s.
+# If these fail to install the app still serves the rules-matrix mode; see
+# run_rl_policy()'s ImportError fallback.
+torch>=2.0
+transformers>=4.40
+peft>=0.11

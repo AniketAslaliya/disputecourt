@@ -65,8 +65,19 @@ def run_rl_policy(narrative):
     and says which it used -- an untuned base model labelled 'RL policy' in a
     demo would be a lie by omission.
     """
-    import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    try:
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+    except ImportError:
+        # Keep the rest of the app usable if the ML deps aren't installed
+        # (e.g. a Space build that dropped them) rather than 500-ing the page.
+        return {
+            "verdict": "abstain", "confidence": 0.5,
+            "reasoning": "torch/transformers not installed in this environment, so "
+                         "the policy cannot be loaded. The rules-matrix mode works "
+                         "and needs no ML dependencies.",
+            "rebuttal_draft": "", "mode": "RL policy unavailable (missing deps)",
+        }
 
     if not _POLICY:
         base = "Qwen/Qwen2.5-0.5B-Instruct"
