@@ -1,88 +1,26 @@
-# 5-Minute Pitch Video — Word-for-Word Script
+# 5-Minute Pitch Video — Space-Only Script
 
-Read the quoted lines aloud while screen-recording. ~640 spoken words ≈ **4:05 at
-a normal pace**, leaving ~40s for clicking through the demo and letting the table
-render. Lands around **4:45**.
+Everything happens on one URL: **https://huggingface.co/spaces/AniketAsla/disputecourt**
 
-**Setup before you hit record**
-- `python app.py` running in a browser tab, examples loaded
-- A terminal at the repo root with `python eval/compare_all.py` ready to run
-- `SKILL.md` and `data/training_curve.png` open in tabs
-- OBS or Loom at 1080p, mic tested
+No terminal, no editor, no repo. Screen-record that page for the whole video.
+~690 spoken words ≈ **4:15–4:50** including click pauses.
 
-**The one rule:** every number below is from `data/comparison.json`. Don't add any.
+**Before you record**
+- Open the Space, wait for it to finish building, and click one example once so
+  the model is warm and the page is scrolled to the top
+- Browser zoom **125%**
+- Collapse the "Results & method" accordion — you'll open it on camera at 2:45
+- Have `data/comparison.json` numbers nowhere else; every figure you say is
+  already on screen inside that accordion
 
----
-
-## Screen direction — what is visible when
-
-| Time | On screen | What you do |
-|---|---|---|
-| 0:00–0:25 | Title card *or* your face | Nothing. Just talk. |
-| 0:25–1:10 | Gradio app, full screen | Click Examples 1 → 2 → 3, Adjudicate each |
-| 1:10–1:35 | `SKILL.md`, scrolled to the labeling-logic block | Slow scroll over the 3 rules |
-| 1:35–1:50 | `scripts/labeler.py`, the `label()` function | Sit still on it |
-| 1:50–2:20 | `training/reward.py`, top constants | Highlight the two FP penalty lines |
-| 2:20–3:10 | Terminal running `eval/compare_all.py` | Run it, let the table render, cursor on the base column |
-| 3:10–4:05 | `data/training_curve.png` full screen | Nothing — talk over it |
-| 4:05–4:45 | Back to the terminal table | Cursor on the keyword column, then stop |
-
-**Before you record:** browser zoom to **125%**, terminal font to **16pt**. Judges
-watch these in a small window; default sizes are unreadable and it silently costs
-you.
+**The one rule:** in **Rules-matrix mode the verdict comes from the checkboxes,
+not the narrative text.** Never say "it reads the case and decides" in that mode
+— that's the RL policy's job, and the mismatch is exactly what a technical judge
+catches.
 
 ---
 
-## The demo — exact click sequence, no typing
-
-Leave the mode radio on **"Rules matrix (deterministic, no AI)"**. Click each
-example, hit **Adjudicate**, and let the output render. Verified outputs:
-
-| Click | Verdict shown | Confidence | The thing to point at |
-|---|---|---|---|
-| **Example 1** — tracking + AVS Y-match | `REPRESENT` | 0.70 | The **rebuttal draft is populated** |
-| **Example 2** — no shipping record at all | `ACCEPT` | 0.75 | The **rebuttal field is empty** ← linger here |
-| **Example 3** — delivered, signature illegible | `ABSTAIN` | 0.50 | It **refuses to decide** |
-| *Example 4 (optional)* — delivered to wrong city | `ACCEPT` | 0.85 | `contradicted` overrides delivery proof |
-
-**Why rules mode and not the RL policy:** it's instant (the RL policy takes ~20s
-per case on CPU), and the output labels itself `Mode: rules-matrix
-(deterministic)` on screen, so nobody can mistake it for the model. Critically,
-the RL policy answers `represent` to *everything* — that's the result you report
-at 3:10, not something you want to discover live on camera.
-
-**Optional, and genuinely strong if you have the seconds:** after Example 2
-returns `ACCEPT`, switch the mode radio to **RL policy** and re-run that same
-case. It will say `REPRESENT`. Then say:
-
-> "That's the trained policy on a case with no delivery evidence at all. It says
-> fight it. That's the failure I'm about to quantify — I'm not going to show you
-> the deterministic path and let you assume the model does the same thing."
-
-That single move does more for your credibility than any number in the table. Cut
-it only if you're over time.
-
----
-
-## Delivery — how to not sound like you're reading
-
-- **Lead with the stake, not the architecture.** The first sentence is about money
-  being lost. Nobody cares what you built until they care what it's for.
-- **Pause for a beat before "this is a negative result."** A held silence there
-  reads as confidence. Rushing it reads as embarrassment.
-- **Point the cursor at what you're describing.** When you say "the rebuttal field
-  is empty," the cursor should be on the empty field. Saying it while the mouse
-  sits still is a wasted second.
-- **Vary pace deliberately.** Fast through setup, slow through the base-model trap
-  and the reward diagnosis — those two are the parts worth understanding.
-- **Read it aloud once before recording.** You'll catch every phrase that isn't
-  yours and can swap it for one that is. Don't preserve my wording over your own.
-- **One take is fine.** A small stumble costs nothing; a video that never gets
-  uploaded costs everything.
-
----
-
-## 0:00 – 0:25 — Problem
+## 0:00 – 0:25 — Problem  *(Space landing page, top)*
 
 > "Merchants lose money on chargebacks in two opposite directions at once. They
 > fight disputes they were never going to win, paying a representment fee for the
@@ -94,117 +32,129 @@ it only if you're over time.
 
 ---
 
-## 0:25 – 1:10 — Demo  *(run all three examples)*
+## 0:25 – 1:15 — The three verdicts  *(scroll to Examples, click rows 1, 2, 3)*
 
-> "Three outputs: a verdict, a calibrated confidence, and a rebuttal draft.
->
-> Tracking confirms delivery, AVS matches billing — represent, with a rebuttal
-> restating only evidence the merchant actually holds.
->
-> No delivery record — accept the loss, and the rebuttal field is empty. That's
-> enforced in code.
->
-> And the one I care about: delivery confirmed, but the only identity link is an
-> illegible signature. Nothing ties that parcel to this cardholder. It doesn't
-> guess — it escalates. A quarter of my dataset lands there by design."
+Click **Example 1** → Adjudicate.
 
----
+> "Three outputs: a verdict, a calibrated confidence, and a rebuttal draft. Here
+> tracking confirms delivery and the address matches billing — represent, with a
+> rebuttal that restates only evidence the merchant actually holds."
 
-## 1:10 – 1:50 — Ground truth  *(screen: `SKILL.md`, then `scripts/labeler.py`)*
+Click **Example 2** → Adjudicate. *Cursor on the output where no rebuttal appears.*
 
-> "Here's what makes the numbers mean anything.
->
-> Every label comes from a rules matrix built from Visa's published evidence
-> requirements. Proof of delivery, plus something linking it to this cardholder,
-> nothing contradicting it — represent. No proof of delivery — accept. Anything
-> unresolved — abstain.
->
-> Ninety lines of Python, and it's the only thing here that assigns a label. I
-> never ask a model 'would this win?' — that's training a model to imitate another
-> model's guess and reporting the agreement as accuracy."
+> "No delivery record at all — accept the loss. And notice there's no rebuttal.
+> That's enforced in code, not a style choice: the drafter is unreachable on any
+> verdict except represent."
+
+Click **Example 3** → Adjudicate.
+
+> "And the one I care about. Delivery is confirmed, but the only identity link is
+> an illegible signature — nothing ties that parcel to this cardholder. It
+> doesn't guess. It escalates to a human. A quarter of my dataset is built to
+> land exactly there."
 
 ---
 
-## 1:50 – 2:20 — Reward  *(screen: `training/reward.py`)*
+## 1:15 – 1:50 — Ground truth  *(cursor over the E1–E7 checkboxes)*
 
-> "The policy is a half-billion-parameter Qwen tuned with GRPO, written directly
-> rather than through a framework.
+> "These seven items are the whole evidence vocabulary — proof of delivery,
+> digital access logs, address match, signature, device continuity, employment
+> proof, support logs.
 >
-> Four reward terms: correctness against the matrix, Brier-style calibration,
-> abstention credit for escalating ambiguous cases, and — the thing the brief names
-> explicitly — false-positive cost, with wrongly representing penalised harder than
-> wrongly accepting."
+> And here's what makes the numbers mean anything. I tell the system which of
+> these the merchant actually holds, and a rules matrix decides — built from
+> Visa's published requirements. Delivery proven, plus something linking it to
+> this cardholder, nothing contradicting it: represent. No proof of delivery:
+> accept. Anything unresolved: abstain.
+>
+> That matrix is ninety lines of Python and it's the only thing that assigns a
+> label. I never ask a model 'would this win?' — that's training a model to
+> imitate another model's guess and reporting the agreement as accuracy."
 
 ---
 
-## 2:20 – 3:10 — The base model  *(run `python eval/compare_all.py`)*
+## 1:50 – 2:20 — The three modes  *(cursor over the mode radio)*
 
-> "Same hundred held-out cases, same prompt, same parser for every column.
+> "Three ways to adjudicate. The rules matrix, deterministic, what you just saw —
+> that's the ground truth.
 >
-> Base model, before RL: thirty-nine percent. That number is a trap, and the
-> confusion matrix shows why — it answers 'represent' to ninety-eight cases out of
-> a hundred. It never once says 'accept the loss.' Thirty-nine percent is just the
-> prevalence of represent in my split. A constant predictor that learned nothing,
-> and plain accuracy makes it look forty percent competent.
+> The Court Panel: three personas — a cardholder-side advocate finding evidence
+> gaps, a merchant-side advocate arguing what's satisfied, and a network-rules
+> referee that applies the matrix and declares the verdict.
 >
-> That's why abstention rate and both error directions sit next to accuracy here.
-> Thirty-four wrong-represents, zero wrong-accepts — it tells merchants to fight
-> everything. The expensive direction, and the unsafe one."
+> And the RL policy: a half-billion-parameter Qwen trained with GRPO that gets the
+> case as **prose only**. It never sees these checkboxes — it has to recover the
+> evidence set by reading. That's the real research question here, and it's where
+> my honest result is."
 
 ---
 
-## 3:10 – 4:05 — The RL result  *(show `data/training_curve.png`)*
+## 2:20 – 2:45 — Show the model failing  *(select RL policy, re-run Example 2)*
 
-> "Now the RL column — and this is a negative result. I'd rather walk you through
-> it than dress it up.
+Click **Example 2** again, switch mode to **RL policy**, Adjudicate. Wait for it.
+
+> "Same case — no delivery evidence whatsoever. The rules matrix said accept the
+> loss. Watch what the trained policy says.
 >
-> Training reward improved, minus point nine to minus point six-five. But accuracy
-> went thirty-nine to forty percent — one case, noise. Abstention went two percent
-> to zero, which is worse.
->
-> What did improve: unparseable outputs, two to zero. And Brier, point five-oh to
-> point four-one — at flat accuracy that's purely a confidence drop.
->
-> So it learned to emit valid JSON and hedge. It did not learn to adjudicate. Of
-> my four reward terms, a half-billion-parameter model on fifteen hundred samples
-> can learn two — format and calibration — but not verdict correctness, which
-> needs reading, or abstention credit, which needs knowing which cases are
-> ambiguous. It took the points that were available.
->
-> Two of those were my design errors. My false-positive penalty scales with stated
-> confidence, so hedging reduces it without getting anything right. And
-> always-represent at forty percent prevalence beats always-abstain at twenty-five,
-> so abstention collapsed. Rational under my reward. Useless in production. The fix
-> is a supervised warm-start on evidence extraction — GRPO can't bootstrap a skill
-> the base policy never shows."
+> Represent. It tells the merchant to fight a dispute with nothing behind it.
+> I'm showing you that deliberately, because I'm about to quantify it."
 
 ---
 
-## 4:05 – 4:45 — Keyword control, safety, close
+## 2:45 – 4:00 — The numbers  *(open "Results & method")*
 
-*If you're already past 4:15 when you reach this, **skip the keyword-control
-paragraph** and go straight to the safety lines. It's fully covered in the
-README; the safety close is not, and matters more on camera.*
+> "Same hundred held-out cases for every column.
+>
+> The base model, before RL: thirty-nine percent — and that's a trap. It answers
+> represent to ninety-eight cases out of a hundred, and never once says accept.
+> Thirty-nine percent is just the prevalence of represent in my split. A constant
+> predictor that learned nothing, and plain accuracy makes it look forty percent
+> competent. That's why abstention rate and both error directions sit right next
+> to accuracy.
+>
+> Now the RL column, and this is a negative result. Training reward improved,
+> minus point nine to minus point six-five. But accuracy went thirty-nine to
+> forty — one case, noise. Abstention went two percent to zero, which is worse.
+>
+> What did improve: unparseable outputs, two to zero. And calibration — Brier from
+> point five-oh to point four-one, which at flat accuracy is a pure confidence
+> drop. So it learned to emit valid JSON and hedge. It did not learn to
+> adjudicate.
+>
+> Of my four reward terms, a half-billion model on fifteen hundred samples can
+> learn two — format and calibration — but not verdict correctness, which needs
+> reading, or abstention credit, which needs knowing which cases are ambiguous. It
+> took the points that were available. And the base policy never emitted accept or
+> abstain at all, so there was nothing for the correctness gradient to reinforce.
+> GRPO can't bootstrap a behaviour the base policy never shows. The fix is a
+> supervised warm-start on evidence extraction, first."
 
-> "One more column: a keyword matcher, no AI. Ninety-five percent — and it scores
+---
+
+## 4:00 – 4:45 — Keyword control, safety, close  *(scroll within the accordion)*
+
+> "One more column: a keyword matcher, no AI, ninety-five percent. And it scores
 > that high because I wrote it *after* the data generator, so it matches my own
-> templates. Any finite template generator is invertible by whoever read it. That's
-> a real limit of synthetic data, it's in the README, and I kept the column rather
-> than delete the number that complicates my story.
+> templates. Any finite template generator is invertible by whoever read it.
+> That's a real limit of synthetic data — I kept the column rather than delete the
+> number that complicates my story.
 >
 > And one rule throughout: evidence-thin cases route to accept the loss, never to
-> a fabricated rebuttal. The drafter is only reachable on a represent verdict, and
-> a hard check raises if a rebuttal appears anywhere else.
+> a fabricated rebuttal — which is why example two came back empty.
 >
 > This helps a merchant truthfully assemble evidence they already have. It doesn't
-> help them win a dispute they should lose. Repo's linked — thanks."
+> help them win a dispute they should lose. Code and full analysis are linked at
+> the bottom. Thanks."
 
 ---
 
 ## Before you upload
 
 - [ ] Under 5:00
-- [ ] Every number spoken matches `data/comparison.json`
-- [ ] Uploaded **unlisted**, not private — open the link in a logged-out window
-      and confirm it plays. A private link scores zero.
+- [ ] Every number spoken is visible on screen in the accordion
+- [ ] Uploaded **unlisted**, not private — open the link logged-out and confirm
 - [ ] Link pasted into `SUBMISSION.md`
+
+**If you're running long:** cut the keyword-control paragraph at 4:00 (it's in the
+accordion anyway) and the mode walkthrough at 1:50. Never cut the safety close or
+the 2:20 failure demo — those are the two that carry the most credibility.
